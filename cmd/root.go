@@ -75,6 +75,7 @@ func run(_ *cobra.Command, _ []string) {
 	}
 	defer drv.Close()
 
+	// setup the outgoing MIDI communication
 	djControlOut, err := midi.OpenOut(drv, portNumber, portName)
 	if err != nil {
 		log.Fatal(err)
@@ -82,10 +83,11 @@ func run(_ *cobra.Command, _ []string) {
 	log.Printf("Opened %s successfully for writing", djControlOut)
 	wr := writer.New(djControlOut)
 	ledController := NewLEDController(wr)
+	defer ledController.Close()
 
 	// open the TCI connection
 	tciClient := client.KeepOpen(tciHost, 10*time.Second)
-	tciClient.SetTimeout(1 * time.Second)
+	tciClient.SetTimeout(500 * time.Millisecond)
 
 	// setup the configured controls
 	muteKey := ctrl.MidiKey{Channel: 1, Key: 0x0c}
@@ -95,14 +97,17 @@ func run(_ *cobra.Command, _ []string) {
 
 	vfo1Key := ctrl.MidiKey{Channel: 1, Key: 0x0a}
 	vfo1Wheel := ctrl.NewVFOWheel(vfo1Key, 0, client.VFOA, tciClient)
+	defer vfo1Wheel.Close()
 	wheels[vfo1Key] = vfo1Wheel
 	tciClient.Notify(vfo1Wheel)
 
 	vfo2Key := ctrl.MidiKey{Channel: 2, Key: 0x0a}
 	vfo2Wheel := ctrl.NewVFOWheel(vfo2Key, 0, client.VFOB, tciClient)
+	defer vfo2Wheel.Close()
 	wheels[vfo2Key] = vfo2Wheel
 	tciClient.Notify(vfo2Wheel)
 
+	// setup the incoming MIDI communication
 	djControlIn, err := midi.OpenIn(drv, portNumber, portName)
 	if err != nil {
 		log.Fatal(err)
@@ -184,42 +189,47 @@ func validOptionalPort(port string) bool {
 	return true
 }
 
-func NewTCIHandler(w writer.ChannelWriter) *TCIHandler {
-	return &TCIHandler{
-		w: w,
-	}
-}
-
-type TCIHandler struct {
-	w writer.ChannelWriter
-}
-
-func (h *TCIHandler) SetMute(muted bool) {
-	if muted {
-		h.w.SetChannel(1)
-		writer.NoteOff(h.w, 0x0c)
-	} else {
-		h.w.SetChannel(1)
-		writer.NoteOn(h.w, 0x0c, 0x7f)
-	}
-}
-
 func NewLEDController(w writer.ChannelWriter) *LEDController {
-	return &LEDController{
-		w: w,
+	result := &LEDController{
+		w:        w,
+		commands: make(chan func(writer.ChannelWriter)),
+		closed:   make(chan struct{}),
+	}
+
+	go func() {
+		defer close(result.closed)
+		for command := range result.commands {
+			command(result.w)
+		}
+	}()
+
+	return result
+}
+
+func (c *LEDController) Close() {
+	select {
+	case <-c.closed:
+		return
+	default:
+		close(c.commands)
+		<-c.closed
 	}
 }
 
 type LEDController struct {
-	w writer.ChannelWriter
+	w        writer.ChannelWriter
+	commands chan func(writer.ChannelWriter)
+	closed   chan struct{}
 }
 
 func (c *LEDController) Set(key ctrl.MidiKey, on bool) {
-	c.w.SetChannel(key.Channel)
-	if on {
-		writer.NoteOn(c.w, key.Key, 0x7f)
-	} else {
-		writer.NoteOff(c.w, key.Key)
+	c.commands <- func(w writer.ChannelWriter) {
+		w.SetChannel(key.Channel)
+		if on {
+			writer.NoteOn(w, key.Key, 0x7f)
+		} else {
+			writer.NoteOff(w, key.Key)
+		}
 	}
 }
 
@@ -231,6 +241,7 @@ var buttons map[ctrl.MidiKey]Button = make(map[ctrl.MidiKey]Button)
 
 type Wheel interface {
 	Turned(delta int)
+	Close()
 }
 
 var wheels map[ctrl.MidiKey]Wheel = make(map[ctrl.MidiKey]Wheel)
