@@ -18,6 +18,8 @@ import (
 	"gitlab.com/gomidi/midi/reader"
 	"gitlab.com/gomidi/midi/writer"
 	driver "gitlab.com/gomidi/rtmididrv"
+
+	"github.com/ftl/midi2tci/pkg/ctrl"
 )
 
 var version string = "develop"
@@ -79,10 +81,27 @@ func run(_ *cobra.Command, _ []string) {
 	}
 	log.Printf("Opened %s successfully for writing", djControlOut)
 	wr := writer.New(djControlOut)
+	ledController := NewLEDController(wr)
 
-	tciHandler := NewTCIHandler(wr)
-	tciClient := client.KeepOpen(tciHost, 10*time.Second, tciHandler)
+	// open the TCI connection
+	tciClient := client.KeepOpen(tciHost, 10*time.Second)
 	tciClient.SetTimeout(1 * time.Second)
+
+	// setup the configured controls
+	muteKey := ctrl.MidiKey{Channel: 1, Key: 0x0c}
+	muteButton := ctrl.NewMuteButton(muteKey, ledController, tciClient)
+	buttons[muteKey] = muteButton
+	tciClient.Notify(muteButton)
+
+	vfo1Key := ctrl.MidiKey{Channel: 1, Key: 0x0a}
+	vfo1Wheel := ctrl.NewVFOWheel(vfo1Key, 0, client.VFOA, tciClient)
+	wheels[vfo1Key] = vfo1Wheel
+	tciClient.Notify(vfo1Wheel)
+
+	vfo2Key := ctrl.MidiKey{Channel: 2, Key: 0x0a}
+	vfo2Wheel := ctrl.NewVFOWheel(vfo2Key, 0, client.VFOB, tciClient)
+	wheels[vfo2Key] = vfo2Wheel
+	tciClient.Notify(vfo2Wheel)
 
 	djControlIn, err := midi.OpenIn(drv, portNumber, portName)
 	if err != nil {
@@ -95,41 +114,22 @@ func run(_ *cobra.Command, _ []string) {
 			log.Printf("rx: %#v", msg)
 			switch m := msg.(type) {
 			case channel.NoteOn:
-				if m.Channel() == 0x01 && m.Key() == 0x0c {
-					muted, err := tciClient.Mute()
-					if err != nil {
-						log.Print(err)
-						break
-					}
-					tciClient.SetMute(!muted)
+				key := ctrl.MidiKey{Channel: m.Channel(), Key: m.Key()}
+				button, ok := buttons[key]
+				if ok {
+					button.Pressed()
 				}
-				// if (m.Key() != 0x0f && m.Key() != 0x10) || m.Channel() == 0x06 || m.Channel() == 0x07 {
-				// 	wr.Write(m)
-				// }
-			case channel.NoteOff:
-			// if (m.Key() != 0x0f && m.Key() != 0x10) || m.Channel() == 0x06 || m.Channel() == 0x07 {
-			// 	wr.Write(m)
-			// }
 			case channel.ControlChange:
-				if m.Controller() == 0x0a {
-					var vfo client.VFO
-					if m.Channel() == 0x01 {
-						vfo = client.VFOA
-					} else if m.Channel() == 0x02 {
-						vfo = client.VFOB
-					}
-					frequency, err := tciClient.VFOFrequency(0, vfo)
-					if err != nil {
-						log.Print(err)
-						break
-					}
+				key := ctrl.MidiKey{Channel: m.Channel(), Key: m.Controller()}
+				wheel, ok := wheels[key]
+				if ok {
 					var delta int
 					if m.Value() < 0x40 {
-						delta = 1 // * velocity
+						delta = 1
 					} else {
-						delta = -1 // * velocity
+						delta = -1
 					}
-					tciClient.SetVFOFrequency(0, vfo, frequency+delta)
+					wheel.Turned(delta)
 				}
 			}
 		}),
@@ -203,3 +203,34 @@ func (h *TCIHandler) SetMute(muted bool) {
 		writer.NoteOn(h.w, 0x0c, 0x7f)
 	}
 }
+
+func NewLEDController(w writer.ChannelWriter) *LEDController {
+	return &LEDController{
+		w: w,
+	}
+}
+
+type LEDController struct {
+	w writer.ChannelWriter
+}
+
+func (c *LEDController) Set(key ctrl.MidiKey, on bool) {
+	c.w.SetChannel(key.Channel)
+	if on {
+		writer.NoteOn(c.w, key.Key, 0x7f)
+	} else {
+		writer.NoteOff(c.w, key.Key)
+	}
+}
+
+type Button interface {
+	Pressed()
+}
+
+var buttons map[ctrl.MidiKey]Button = make(map[ctrl.MidiKey]Button)
+
+type Wheel interface {
+	Turned(delta int)
+}
+
+var wheels map[ctrl.MidiKey]Wheel = make(map[ctrl.MidiKey]Wheel)
