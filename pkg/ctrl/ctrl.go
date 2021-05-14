@@ -21,7 +21,6 @@ func NewMuteButton(key MidiKey, led LED, muter Muter) *MuteButton {
 		key:   key,
 		led:   led,
 		muter: muter,
-		muted: false,
 	}
 }
 
@@ -47,6 +46,82 @@ func (b *MuteButton) Pressed() {
 func (b *MuteButton) SetMute(muted bool) {
 	b.muted = muted
 	b.led.Set(b.key, !muted)
+}
+
+func NewRXChannelEnableButton(key MidiKey, trx int, vfo client.VFO, led LED, rxChannelEnabler RXChannelEnabler) *RXChannelEnableButton {
+	return &RXChannelEnableButton{
+		key:              key,
+		trx:              trx,
+		vfo:              vfo,
+		led:              led,
+		rxChannelEnabler: rxChannelEnabler,
+	}
+}
+
+type RXChannelEnableButton struct {
+	key              MidiKey
+	trx              int
+	vfo              client.VFO
+	led              LED
+	rxChannelEnabler RXChannelEnabler
+
+	enabled bool
+}
+
+type RXChannelEnabler interface {
+	SetRXChannelEnable(int, client.VFO, bool) error
+}
+
+func (b *RXChannelEnableButton) Pressed() {
+	err := b.rxChannelEnabler.SetRXChannelEnable(b.trx, b.vfo, !b.enabled)
+	if err != nil {
+		log.Print(err)
+	}
+}
+
+func (b *RXChannelEnableButton) SetRXChannelEnable(trx int, vfo client.VFO, enabled bool) {
+	if trx != b.trx || vfo != b.vfo {
+		return
+	}
+	b.enabled = enabled
+	b.led.Set(b.key, enabled)
+}
+
+func NewSplitEnableButton(key MidiKey, trx int, led LED, splitEnabler SplitEnabler) *SplitEnableButton {
+	return &SplitEnableButton{
+		key:          key,
+		trx:          trx,
+		led:          led,
+		splitEnabler: splitEnabler,
+	}
+}
+
+type SplitEnableButton struct {
+	key          MidiKey
+	trx          int
+	led          LED
+	splitEnabler SplitEnabler
+
+	enabled bool
+}
+
+type SplitEnabler interface {
+	SetSplitEnable(int, bool) error
+}
+
+func (b *SplitEnableButton) Pressed() {
+	err := b.splitEnabler.SetSplitEnable(b.trx, !b.enabled)
+	if err != nil {
+		log.Print(err)
+	}
+}
+
+func (b *SplitEnableButton) SetSplitEnable(trx int, enabled bool) {
+	if trx != b.trx {
+		return
+	}
+	b.enabled = enabled
+	b.led.Set(b.key, enabled)
 }
 
 func NewVFOWheel(key MidiKey, trx int, vfo client.VFO, controller VFOFrequencyController) *VFOWheel {

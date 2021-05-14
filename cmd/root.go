@@ -95,6 +95,16 @@ func run(_ *cobra.Command, _ []string) {
 	buttons[muteKey] = muteButton
 	tciClient.Notify(muteButton)
 
+	rxChannelEnableKey := ctrl.MidiKey{Channel: 2, Key: 0x0c}
+	rxChannelEnableButton := ctrl.NewRXChannelEnableButton(rxChannelEnableKey, 0, client.VFOB, ledController, tciClient)
+	buttons[rxChannelEnableKey] = rxChannelEnableButton
+	tciClient.Notify(rxChannelEnableButton)
+
+	splitEnableKey := ctrl.MidiKey{Channel: 2, Key: 0x03}
+	splitEnableButton := ctrl.NewSplitEnableButton(splitEnableKey, 0, ledController, tciClient)
+	buttons[splitEnableKey] = splitEnableButton
+	tciClient.Notify(splitEnableButton)
+
 	vfo1Key := ctrl.MidiKey{Channel: 1, Key: 0x0a}
 	vfo1Wheel := ctrl.NewVFOWheel(vfo1Key, 0, client.VFOA, tciClient)
 	defer vfo1Wheel.Close()
