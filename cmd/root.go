@@ -14,7 +14,6 @@ import (
 	"github.com/ftl/tci/client"
 	"github.com/spf13/cobra"
 	"gitlab.com/gomidi/midi"
-	"gitlab.com/gomidi/midi/midimessage/channel"
 	"gitlab.com/gomidi/midi/reader"
 	"gitlab.com/gomidi/midi/writer"
 	driver "gitlab.com/gomidi/rtmididrv"
@@ -31,6 +30,7 @@ var rootCmd = &cobra.Command{
 }
 
 var rootFlags = struct {
+	trace      bool
 	portNumber int
 	portName   string
 	tciAddress string
@@ -48,6 +48,7 @@ func init() {
 	rootCmd.PersistentFlags().IntVar(&rootFlags.portNumber, "portNumber", 0, "number of the MIDI port (use list to find out the available ports)")
 	rootCmd.PersistentFlags().StringVar(&rootFlags.portName, "portName", "", "name of the MIDI port (use list to find out the available ports)")
 	rootCmd.PersistentFlags().StringVar(&rootFlags.tciAddress, "tci", "localhost:40001", "the address of the TCI server")
+	rootCmd.PersistentFlags().BoolVar(&rootFlags.trace, "trace", false, "print a trace of allincoming MIDI messages")
 }
 
 func run(_ *cobra.Command, _ []string) {
@@ -117,6 +118,12 @@ func run(_ *cobra.Command, _ []string) {
 	wheels[vfo2Key] = vfo2Wheel
 	tciClient.Notify(vfo2Wheel)
 
+	volumeKey := ctrl.MidiKey{Channel: 0, Key: 0x03}
+	volumeSlider := ctrl.NewVolumeSlider(tciClient)
+	defer volumeSlider.Close()
+	sliders[volumeKey] = volumeSlider
+	tciClient.Notify(volumeSlider)
+
 	// setup the incoming MIDI communication
 	djControlIn, err := midi.OpenIn(drv, portNumber, portName)
 	if err != nil {
@@ -125,27 +132,32 @@ func run(_ *cobra.Command, _ []string) {
 	log.Printf("Opened %s successfully for reading", djControlIn)
 	rd := reader.New(
 		reader.NoLogger(),
+		reader.NoteOn(func(_ *reader.Position, channel, key, velocity uint8) {
+			button, ok := buttons[ctrl.MidiKey{Channel: channel, Key: key}]
+			if ok {
+				button.Pressed()
+			}
+		}),
+		reader.ControlChange(func(_ *reader.Position, channel, controller, value uint8) {
+			midiKey := ctrl.MidiKey{Channel: channel, Key: controller}
+			wheel, ok := wheels[midiKey]
+			if ok {
+				var delta int
+				if value < 0x40 {
+					delta = 1
+				} else {
+					delta = -1
+				}
+				wheel.Turned(delta)
+			}
+			slider, ok := sliders[midiKey]
+			if ok {
+				slider.Changed(int(value))
+			}
+		}),
 		reader.Each(func(_ *reader.Position, msg midi.Message) {
-			log.Printf("rx: %#v", msg)
-			switch m := msg.(type) {
-			case channel.NoteOn:
-				key := ctrl.MidiKey{Channel: m.Channel(), Key: m.Key()}
-				button, ok := buttons[key]
-				if ok {
-					button.Pressed()
-				}
-			case channel.ControlChange:
-				key := ctrl.MidiKey{Channel: m.Channel(), Key: m.Controller()}
-				wheel, ok := wheels[key]
-				if ok {
-					var delta int
-					if m.Value() < 0x40 {
-						delta = 1
-					} else {
-						delta = -1
-					}
-					wheel.Turned(delta)
-				}
+			if rootFlags.trace {
+				log.Printf("rx: %#v", msg)
 			}
 		}),
 	)
@@ -255,3 +267,10 @@ type Wheel interface {
 }
 
 var wheels map[ctrl.MidiKey]Wheel = make(map[ctrl.MidiKey]Wheel)
+
+type Slider interface {
+	Changed(value int)
+	Close()
+}
+
+var sliders map[ctrl.MidiKey]Slider = make(map[ctrl.MidiKey]Slider)
