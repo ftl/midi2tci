@@ -124,6 +124,36 @@ func run(_ *cobra.Command, _ []string) {
 	sliders[volumeKey] = volumeSlider
 	tciClient.Notify(volumeSlider)
 
+	vfo1VolumeKey := ctrl.MidiKey{Channel: 1, Key: 0x00}
+	vfo1VolumeSlider := ctrl.NewRXVolumeSlider(0, client.VFOA, tciClient)
+	defer vfo1VolumeSlider.Close()
+	sliders[vfo1VolumeKey] = vfo1VolumeSlider
+	tciClient.Notify(vfo1VolumeSlider)
+
+	vfo2VolumeKey := ctrl.MidiKey{Channel: 2, Key: 0x00}
+	vfo2VolumeSlider := ctrl.NewRXVolumeSlider(0, client.VFOB, tciClient)
+	defer vfo2VolumeSlider.Close()
+	sliders[vfo2VolumeKey] = vfo2VolumeSlider
+	tciClient.Notify(vfo2VolumeSlider)
+
+	vfo1BalanceKey := ctrl.MidiKey{Channel: 1, Key: 0x02}
+	vfo1BalanceSlider := ctrl.NewRXBalanceSlider(0, client.VFOA, tciClient)
+	defer vfo1BalanceSlider.Close()
+	sliders[vfo1BalanceKey] = vfo1BalanceSlider
+	tciClient.Notify(vfo1BalanceSlider)
+
+	vfo2BalanceKey := ctrl.MidiKey{Channel: 2, Key: 0x02}
+	vfo2BalanceSlider := ctrl.NewRXBalanceSlider(0, client.VFOB, tciClient)
+	defer vfo2BalanceSlider.Close()
+	sliders[vfo2BalanceKey] = vfo2BalanceSlider
+	tciClient.Notify(vfo2BalanceSlider)
+
+	rxMixerKey := ctrl.MidiKey{Channel: 0, Key: 0x00}
+	rxMixerSlider := ctrl.NewRXMixer(0, tciClient)
+	defer rxMixerSlider.Close()
+	sliders[rxMixerKey] = rxMixerSlider
+	tciClient.Notify(rxMixerSlider)
+
 	// setup the incoming MIDI communication
 	djControlIn, err := midi.OpenIn(drv, portNumber, portName)
 	if err != nil {
