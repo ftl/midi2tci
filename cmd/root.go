@@ -48,7 +48,7 @@ func init() {
 	rootCmd.PersistentFlags().IntVar(&rootFlags.portNumber, "portNumber", 0, "number of the MIDI port (use list to find out the available ports)")
 	rootCmd.PersistentFlags().StringVar(&rootFlags.portName, "portName", "", "name of the MIDI port (use list to find out the available ports)")
 	rootCmd.PersistentFlags().StringVar(&rootFlags.tciAddress, "tci", "localhost:40001", "the address of the TCI server")
-	rootCmd.PersistentFlags().BoolVar(&rootFlags.trace, "trace", false, "print a trace of allincoming MIDI messages")
+	rootCmd.PersistentFlags().BoolVar(&rootFlags.trace, "trace", false, "print a trace of all incoming MIDI messages")
 }
 
 func run(_ *cobra.Command, _ []string) {
@@ -105,6 +105,14 @@ func run(_ *cobra.Command, _ []string) {
 	splitEnableButton := ctrl.NewSplitEnableButton(splitEnableKey, 0, ledController, tciClient)
 	buttons[splitEnableKey] = splitEnableButton
 	tciClient.Notify(splitEnableButton)
+
+	syncAWithBKey := ctrl.MidiKey{Channel: 1, Key: 0x05}
+	syncAWithBButton := ctrl.NewSyncVFOFrequencyButton(syncAWithBKey, 0, client.VFOB, 0, client.VFOA, tciClient, tciClient)
+	buttons[syncAWithBKey] = syncAWithBButton
+
+	syncBWithAKey := ctrl.MidiKey{Channel: 2, Key: 0x05}
+	syncBWithAButton := ctrl.NewSyncVFOFrequencyButton(syncAWithBKey, 0, client.VFOA, 0, client.VFOB, tciClient, tciClient)
+	buttons[syncBWithAKey] = syncBWithAButton
 
 	vfo1Key := ctrl.MidiKey{Channel: 1, Key: 0x0a}
 	vfo1Wheel := ctrl.NewVFOWheel(vfo1Key, 0, client.VFOA, tciClient)

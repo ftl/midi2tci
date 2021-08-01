@@ -124,6 +124,41 @@ func (b *SplitEnableButton) SetSplitEnable(trx int, enabled bool) {
 	b.led.Set(b.key, enabled)
 }
 
+func NewSyncVFOFrequencyButton(key MidiKey, srcTrx int, srcVFO client.VFO, dstTrx int, dstVFO client.VFO, controller VFOFrequencyController, provider VFOFrequencyProvider) *SyncVFOFrequencyButton {
+	return &SyncVFOFrequencyButton{
+		key:        key,
+		srcTrx:     srcTrx,
+		srcVFO:     srcVFO,
+		dstTrx:     dstTrx,
+		dstVFO:     dstVFO,
+		controller: controller,
+		provider:   provider,
+	}
+}
+
+type SyncVFOFrequencyButton struct {
+	key        MidiKey
+	srcTrx     int
+	srcVFO     client.VFO
+	dstTrx     int
+	dstVFO     client.VFO
+	controller VFOFrequencyController
+	provider   VFOFrequencyProvider
+}
+
+type VFOFrequencyProvider interface {
+	VFOFrequency(trx int, vfo client.VFO) (int, error)
+}
+
+func (b *SyncVFOFrequencyButton) Pressed() {
+	frequency, err := b.provider.VFOFrequency(b.srcTrx, b.srcVFO)
+	if err != nil {
+		log.Printf("Cannot read VFO frequency: %v", err)
+		return
+	}
+	err = b.controller.SetVFOFrequency(b.dstTrx, b.dstVFO, frequency)
+}
+
 func NewVFOWheel(key MidiKey, trx int, vfo client.VFO, controller VFOFrequencyController) *VFOWheel {
 	result := &VFOWheel{
 		key:        key,
