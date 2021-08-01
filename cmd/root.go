@@ -107,11 +107,11 @@ func run(_ *cobra.Command, _ []string) {
 	tciClient.Notify(splitEnableButton)
 
 	syncAWithBKey := ctrl.MidiKey{Channel: 1, Key: 0x05}
-	syncAWithBButton := ctrl.NewSyncVFOFrequencyButton(syncAWithBKey, 0, client.VFOB, 0, client.VFOA, tciClient, tciClient)
+	syncAWithBButton := ctrl.NewSyncVFOFrequencyButton(0, client.VFOB, 0, client.VFOA, tciClient, tciClient)
 	buttons[syncAWithBKey] = syncAWithBButton
 
 	syncBWithAKey := ctrl.MidiKey{Channel: 2, Key: 0x05}
-	syncBWithAButton := ctrl.NewSyncVFOFrequencyButton(syncAWithBKey, 0, client.VFOA, 0, client.VFOB, tciClient, tciClient)
+	syncBWithAButton := ctrl.NewSyncVFOFrequencyButton(0, client.VFOA, 0, client.VFOB, tciClient, tciClient)
 	buttons[syncBWithAKey] = syncBWithAButton
 
 	vfo1Key := ctrl.MidiKey{Channel: 1, Key: 0x0a}
@@ -161,6 +161,28 @@ func run(_ *cobra.Command, _ []string) {
 	defer rxMixerSlider.Close()
 	sliders[rxMixerKey] = rxMixerSlider
 	tciClient.Notify(rxMixerSlider)
+
+	ritKey := ctrl.MidiKey{Channel: 1, Key: 0x08}
+	ritSlider := ctrl.NewRITSlider(0, tciClient)
+	defer ritSlider.Close()
+	sliders[ritKey] = ritSlider
+	tciClient.Notify(ritSlider)
+
+	xitKey := ctrl.MidiKey{Channel: 2, Key: 0x08}
+	xitSlider := ctrl.NewXITSlider(0, tciClient)
+	defer xitSlider.Close()
+	sliders[xitKey] = xitSlider
+	tciClient.Notify(xitSlider)
+
+	ritEnableKey := ctrl.MidiKey{Channel: 6, Key: 0x00}
+	ritEnableButton := ctrl.NewRITEnableButton(ritEnableKey, 0, ledController, tciClient)
+	buttons[ritEnableKey] = ritEnableButton
+	tciClient.Notify(ritEnableButton)
+
+	xitEnableKey := ctrl.MidiKey{Channel: 6, Key: 0x01}
+	xitEnableButton := ctrl.NewXITEnableButton(xitEnableKey, 0, ledController, tciClient)
+	buttons[xitEnableKey] = xitEnableButton
+	tciClient.Notify(xitEnableButton)
 
 	// setup the incoming MIDI communication
 	djControlIn, err := midi.OpenIn(drv, portNumber, portName)
