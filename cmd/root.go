@@ -184,6 +184,36 @@ func run(_ *cobra.Command, _ []string) {
 	buttons[xitEnableKey] = xitEnableButton
 	tciClient.Notify(xitEnableButton)
 
+	cwFilterKey := ctrl.MidiKey{Channel: 6, Key: 0x02}
+	cwFilterButton := ctrl.NewFilterBandButton(cwFilterKey, 0, -50, 50, ledController, tciClient)
+	buttons[cwFilterKey] = cwFilterButton
+	tciClient.Notify(cwFilterButton)
+
+	rttyFilterKey := ctrl.MidiKey{Channel: 6, Key: 0x03}
+	rttyFilterButton := ctrl.NewFilterBandButton(rttyFilterKey, 0, 1200, 1800, ledController, tciClient)
+	buttons[rttyFilterKey] = rttyFilterButton
+	tciClient.Notify(rttyFilterButton)
+
+	cwModeKey := ctrl.MidiKey{Channel: 7, Key: 0x00}
+	cwModeButton := ctrl.NewModeButton(cwModeKey, 0, client.ModeCW, ledController, tciClient)
+	buttons[cwModeKey] = cwModeButton
+	tciClient.Notify(cwModeButton)
+
+	digitalModeKey := ctrl.MidiKey{Channel: 7, Key: 0x01}
+	digitalModeButton := ctrl.NewModeButton(digitalModeKey, 0, client.ModeDIGU, ledController, tciClient)
+	buttons[digitalModeKey] = digitalModeButton
+	tciClient.Notify(digitalModeButton)
+
+	lsbModeKey := ctrl.MidiKey{Channel: 7, Key: 0x02}
+	lsbModeButton := ctrl.NewModeButton(lsbModeKey, 0, client.ModeLSB, ledController, tciClient)
+	buttons[lsbModeKey] = lsbModeButton
+	tciClient.Notify(lsbModeButton)
+
+	usbModeKey := ctrl.MidiKey{Channel: 7, Key: 0x03}
+	usbModeButton := ctrl.NewModeButton(usbModeKey, 0, client.ModeUSB, ledController, tciClient)
+	buttons[usbModeKey] = usbModeButton
+	tciClient.Notify(usbModeButton)
+
 	// setup the incoming MIDI communication
 	djControlIn, err := midi.OpenIn(drv, portNumber, portName)
 	if err != nil {
