@@ -1,10 +1,40 @@
 package ctrl
 
-import "log"
+import (
+	"fmt"
+	"log"
+	"strconv"
+
+	"github.com/ftl/tci/client"
+)
 
 const (
 	FilterMapping MappingType = "filter"
 )
+
+func init() {
+	Factories[FilterMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+		minFrequencyStr, ok := m.Options["min"]
+		if !ok {
+			return nil, ButtonController, fmt.Errorf("No minimum frequency configured. Use options[\"min\"]=\"<min frequency in Hz>\" to configure the filter's minimum frequency.")
+		}
+		minFrequency, err := strconv.Atoi(minFrequencyStr)
+		if err != nil {
+			return nil, ButtonController, fmt.Errorf("Invalid minimum frequency %s: %v", minFrequencyStr, err)
+		}
+
+		maxFrequencyStr, ok := m.Options["max"]
+		if !ok {
+			return nil, ButtonController, fmt.Errorf("No maximum frequency configured. Use options[\"max\"]=\"<max frequency in Hz>\" to configure the filter's maximum frequency.")
+		}
+		maxFrequency, err := strconv.Atoi(maxFrequencyStr)
+		if err != nil {
+			return nil, ButtonController, fmt.Errorf("Invalid maximum frequency %s: %v", maxFrequencyStr, err)
+		}
+
+		return NewFilterBandButton(m.MidiKey(), m.TRX, minFrequency, maxFrequency, led, tciClient), ButtonController, nil
+	}
+}
 
 func NewFilterBandButton(key MidiKey, trx int, bottomFrequency int, topFrequency int, led LED, controller RXFilterBandController) *FilterBandButton {
 	return &FilterBandButton{

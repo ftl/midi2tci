@@ -89,6 +89,8 @@ func run(_ *cobra.Command, _ []string) {
 			{Type: ctrl.ModeMapping, Channel: 7, Key: 0x01, TRX: 0, Options: map[string]string{"mode": "DIGU"}},
 			{Type: ctrl.ModeMapping, Channel: 7, Key: 0x02, TRX: 0, Options: map[string]string{"mode": "LSB"}},
 			{Type: ctrl.ModeMapping, Channel: 7, Key: 0x03, TRX: 0, Options: map[string]string{"mode": "USB"}},
+			{Type: ctrl.FilterMapping, Channel: 6, Key: 0x02, TRX: 0, Options: map[string]string{"min": "-50", "max": "50"}},
+			{Type: ctrl.FilterMapping, Channel: 6, Key: 0x03, TRX: 0, Options: map[string]string{"min": "1400", "max": "1600"}},
 		},
 	}
 
