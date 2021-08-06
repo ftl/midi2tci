@@ -8,6 +8,12 @@ import (
 
 const MixerMapping MappingType = "rx_mixer"
 
+func init() {
+	Factories[MixerMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+		return NewRXMixer(m.TRX, tciClient), SliderController, nil
+	}
+}
+
 func NewRXMixer(trx int, controller RXMixController) *RXMixer {
 	const volumeTick = float64(60.0 / 127.0)
 	const balanceTick = float64(80.0 / 127.0)
