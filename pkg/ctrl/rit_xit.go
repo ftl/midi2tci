@@ -2,6 +2,13 @@ package ctrl
 
 import "log"
 
+const (
+	EnableRITMapping MappingType = "enable_rit"
+	RITMapping       MappingType = "rit"
+	EnableXITMapping MappingType = "enable_xit"
+	XITMapping       MappingType = "xit"
+)
+
 func NewRITEnableButton(key MidiKey, trx int, led LED, ritEnabler RITEnabler) *RITEnableButton {
 	return &RITEnableButton{
 		key:        key,

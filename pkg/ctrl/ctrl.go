@@ -1,7 +1,10 @@
 package ctrl
 
 import (
-	"time"
+	"fmt"
+	"strings"
+
+	"github.com/ftl/tci/client"
 )
 
 type MidiKey struct {
@@ -13,108 +16,43 @@ type LED interface {
 	Set(key MidiKey, on bool)
 }
 
-func NewSlider(set func(int), translate func(int) int) *Slider {
-	result := &Slider{
-		set:           set,
-		translate:     translate,
-		selectedValue: make(chan int, 1000),
-		activeValue:   make(chan int, 1000),
-		closed:        make(chan struct{}),
+type Mapping struct {
+	Type    MappingType       `json:"type"`
+	Channel byte              `json:"channel"`
+	Key     byte              `json:"key"`
+	TRX     int               `json:"trx"`
+	VFO     string            `json:"vfo"`
+	Options map[string]string `json:"options"`
+}
+
+func (m Mapping) MidiKey() MidiKey {
+	return MidiKey{
+		Channel: m.Channel,
+		Key:     m.Key,
 	}
-
-	result.start()
-
-	return result
 }
 
-type Slider struct {
-	set           func(int)
-	translate     func(int) int
-	activeValue   chan int
-	selectedValue chan int
-	closed        chan struct{}
-}
+type MappingType string
 
-func (s *Slider) start() {
-	tx := make(chan int)
-	go func() {
-		for {
-			select {
-			case <-s.closed:
-				return
-			case value := <-tx:
-				s.set(value)
-			}
-		}
-	}()
+type ControllerType int
 
-	go func() {
-		defer close(s.closed)
-		ticker := time.NewTicker(10 * time.Millisecond)
-		defer ticker.Stop()
+const (
+	ButtonController ControllerType = iota
+	SliderController
+	WheelController
+)
 
-		activeValue := 0
-		selectedValue := 0
-		pending := false
+type ControllerFactory func(Mapping, LED, *client.Client) (interface{}, ControllerType, error)
 
-		for {
-			select {
-			case value, valid := <-s.activeValue:
-				if !valid {
-					return
-				}
-				activeValue = value
-				if !pending {
-					selectedValue = activeValue
-				}
-			case value, valid := <-s.selectedValue:
-				if !valid {
-					return
-				}
-				selectedValue = value
+var Factories = make(map[MappingType]ControllerFactory)
 
-				if activeValue == selectedValue {
-					continue
-				}
-
-				select {
-				case tx <- selectedValue:
-					pending = false
-				default:
-					pending = true
-				}
-			case <-ticker.C:
-				if activeValue == selectedValue {
-					pending = false
-					continue
-				}
-
-				select {
-				case tx <- selectedValue:
-					pending = false
-				default:
-					pending = true
-				}
-			}
-		}
-	}()
-}
-
-func (s *Slider) Close() {
-	select {
-	case <-s.closed:
-		return
+func AtoVFO(a string) (client.VFO, error) {
+	switch strings.ToUpper(a) {
+	case "A", "VFOA":
+		return client.VFOA, nil
+	case "B", "VFOB":
+		return client.VFOB, nil
 	default:
-		close(s.activeValue)
-		close(s.selectedValue)
-		<-s.closed
+		return 0, fmt.Errorf("%s is not a valid VFO, use VFOA or VFOB", a)
 	}
-}
-
-func (s *Slider) Changed(value int) {
-	s.selectedValue <- s.translate(value)
-}
-
-func (s *Slider) SetActiveValue(value int) {
-	s.activeValue <- value
 }

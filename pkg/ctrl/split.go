@@ -6,6 +6,11 @@ import (
 	"github.com/ftl/tci/client"
 )
 
+const (
+	EnableSplitMapping      MappingType = "enable_split"
+	SyncVFOFrequencyMapping MappingType = "sync_vfo_frequency"
+)
+
 func NewSplitEnableButton(key MidiKey, trx int, led LED, splitEnabler SplitEnabler) *SplitEnableButton {
 	return &SplitEnableButton{
 		key:          key,

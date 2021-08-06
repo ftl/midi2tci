@@ -2,6 +2,10 @@ package ctrl
 
 import "log"
 
+const (
+	FilterMapping MappingType = "filter"
+)
+
 func NewFilterBandButton(key MidiKey, trx int, bottomFrequency int, topFrequency int, led LED, controller RXFilterBandController) *FilterBandButton {
 	return &FilterBandButton{
 		key:        key,

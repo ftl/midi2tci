@@ -2,6 +2,11 @@ package ctrl
 
 import "log"
 
+const (
+	MuteMapping   MappingType = "mute"
+	VolumeMapping MappingType = "volume"
+)
+
 func NewMuteButton(key MidiKey, led LED, muter Muter) *MuteButton {
 	return &MuteButton{
 		key:   key,

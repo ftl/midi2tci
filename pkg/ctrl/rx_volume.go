@@ -6,6 +6,12 @@ import (
 	"github.com/ftl/tci/client"
 )
 
+const (
+	EnableRXMapping  MappingType = "enable_rx"
+	RXVolumeMapping  MappingType = "rx_volume"
+	RXBalanceMapping MappingType = "rx_balance"
+)
+
 func NewRXChannelEnableButton(key MidiKey, trx int, vfo client.VFO, led LED, rxChannelEnabler RXChannelEnabler) *RXChannelEnableButton {
 	return &RXChannelEnableButton{
 		key:              key,

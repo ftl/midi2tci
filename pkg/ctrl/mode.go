@@ -6,6 +6,8 @@ import (
 	"github.com/ftl/tci/client"
 )
 
+const ModeMapping MappingType = "mode"
+
 func NewModeButton(key MidiKey, trx int, mode client.Mode, led LED, controller ModeController) *ModeButton {
 	return &ModeButton{
 		key:        key,

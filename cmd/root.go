@@ -18,6 +18,7 @@ import (
 	"gitlab.com/gomidi/midi/writer"
 	driver "gitlab.com/gomidi/rtmididrv"
 
+	"github.com/ftl/midi2tci/pkg/cfg"
 	"github.com/ftl/midi2tci/pkg/ctrl"
 )
 
@@ -76,8 +77,17 @@ func run(_ *cobra.Command, _ []string) {
 	}
 	defer drv.Close()
 
+	config := cfg.Configuration{
+		PortNumber: portNumber,
+		PortName:   portName,
+		Mappings: []ctrl.Mapping{
+			{Type: ctrl.VFOMapping, Channel: 1, Key: 0x0a, TRX: 0, VFO: "VFOA"},
+			{Type: ctrl.VFOMapping, Channel: 2, Key: 0x0a, TRX: 0, VFO: "VFOB"},
+		},
+	}
+
 	// setup the outgoing MIDI communication
-	djControlOut, err := midi.OpenOut(drv, portNumber, portName)
+	djControlOut, err := midi.OpenOut(drv, config.PortNumber, config.PortName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -91,128 +101,157 @@ func run(_ *cobra.Command, _ []string) {
 	tciClient.SetTimeout(500 * time.Millisecond)
 
 	// setup the configured controls
-	muteKey := ctrl.MidiKey{Channel: 1, Key: 0x0c}
-	muteButton := ctrl.NewMuteButton(muteKey, ledController, tciClient)
-	buttons[muteKey] = muteButton
-	tciClient.Notify(muteButton)
+	for _, mapping := range config.Mappings {
+		newController, ok := ctrl.Factories[mapping.Type]
+		if !ok {
+			log.Printf("Cannot find factory for %s", mapping.Type)
+			continue
+		}
 
-	rxChannelEnableKey := ctrl.MidiKey{Channel: 2, Key: 0x0c}
-	rxChannelEnableButton := ctrl.NewRXChannelEnableButton(rxChannelEnableKey, 0, client.VFOB, ledController, tciClient)
-	buttons[rxChannelEnableKey] = rxChannelEnableButton
-	tciClient.Notify(rxChannelEnableButton)
+		controller, controllerType, err := newController(mapping, ledController, tciClient)
+		if err != nil {
+			log.Printf("Cannot create %s: %v", mapping.Type, err)
+			continue
+		}
 
-	splitEnableKey := ctrl.MidiKey{Channel: 2, Key: 0x03}
-	splitEnableButton := ctrl.NewSplitEnableButton(splitEnableKey, 0, ledController, tciClient)
-	buttons[splitEnableKey] = splitEnableButton
-	tciClient.Notify(splitEnableButton)
+		switch controllerType {
+		case ctrl.ButtonController:
+			button := controller.(Button)
+			buttons[mapping.MidiKey()] = button
+		case ctrl.SliderController:
+			slider := controller.(Slider)
+			defer slider.Close()
+			sliders[mapping.MidiKey()] = slider
+		case ctrl.WheelController:
+			wheel := controller.(Wheel)
+			defer wheel.Close()
+			wheels[mapping.MidiKey()] = wheel
+		}
+		tciClient.Notify(controller)
+	}
 
-	syncAWithBKey := ctrl.MidiKey{Channel: 1, Key: 0x05}
-	syncAWithBButton := ctrl.NewSyncVFOFrequencyButton(0, client.VFOB, 0, client.VFOA, tciClient, tciClient)
-	buttons[syncAWithBKey] = syncAWithBButton
+	// muteKey := ctrl.MidiKey{Channel: 1, Key: 0x0c}
+	// muteButton := ctrl.NewMuteButton(muteKey, ledController, tciClient)
+	// buttons[muteKey] = muteButton
+	// tciClient.Notify(muteButton)
 
-	syncBWithAKey := ctrl.MidiKey{Channel: 2, Key: 0x05}
-	syncBWithAButton := ctrl.NewSyncVFOFrequencyButton(0, client.VFOA, 0, client.VFOB, tciClient, tciClient)
-	buttons[syncBWithAKey] = syncBWithAButton
+	// rxChannelEnableKey := ctrl.MidiKey{Channel: 2, Key: 0x0c}
+	// rxChannelEnableButton := ctrl.NewRXChannelEnableButton(rxChannelEnableKey, 0, client.VFOB, ledController, tciClient)
+	// buttons[rxChannelEnableKey] = rxChannelEnableButton
+	// tciClient.Notify(rxChannelEnableButton)
 
-	vfo1Key := ctrl.MidiKey{Channel: 1, Key: 0x0a}
-	vfo1Wheel := ctrl.NewVFOWheel(vfo1Key, 0, client.VFOA, tciClient)
-	defer vfo1Wheel.Close()
-	wheels[vfo1Key] = vfo1Wheel
-	tciClient.Notify(vfo1Wheel)
+	// splitEnableKey := ctrl.MidiKey{Channel: 2, Key: 0x03}
+	// splitEnableButton := ctrl.NewSplitEnableButton(splitEnableKey, 0, ledController, tciClient)
+	// buttons[splitEnableKey] = splitEnableButton
+	// tciClient.Notify(splitEnableButton)
 
-	vfo2Key := ctrl.MidiKey{Channel: 2, Key: 0x0a}
-	vfo2Wheel := ctrl.NewVFOWheel(vfo2Key, 0, client.VFOB, tciClient)
-	defer vfo2Wheel.Close()
-	wheels[vfo2Key] = vfo2Wheel
-	tciClient.Notify(vfo2Wheel)
+	// syncAWithBKey := ctrl.MidiKey{Channel: 1, Key: 0x05}
+	// syncAWithBButton := ctrl.NewSyncVFOFrequencyButton(0, client.VFOB, 0, client.VFOA, tciClient, tciClient)
+	// buttons[syncAWithBKey] = syncAWithBButton
 
-	volumeKey := ctrl.MidiKey{Channel: 0, Key: 0x03}
-	volumeSlider := ctrl.NewVolumeSlider(tciClient)
-	defer volumeSlider.Close()
-	sliders[volumeKey] = volumeSlider
-	tciClient.Notify(volumeSlider)
+	// syncBWithAKey := ctrl.MidiKey{Channel: 2, Key: 0x05}
+	// syncBWithAButton := ctrl.NewSyncVFOFrequencyButton(0, client.VFOA, 0, client.VFOB, tciClient, tciClient)
+	// buttons[syncBWithAKey] = syncBWithAButton
 
-	vfo1VolumeKey := ctrl.MidiKey{Channel: 1, Key: 0x00}
-	vfo1VolumeSlider := ctrl.NewRXVolumeSlider(0, client.VFOA, tciClient)
-	defer vfo1VolumeSlider.Close()
-	sliders[vfo1VolumeKey] = vfo1VolumeSlider
-	tciClient.Notify(vfo1VolumeSlider)
+	// vfo1Key := ctrl.MidiKey{Channel: 1, Key: 0x0a}
+	// vfo1Wheel := ctrl.NewVFOWheel(vfo1Key, 0, client.VFOA, tciClient)
+	// defer vfo1Wheel.Close()
+	// wheels[vfo1Key] = vfo1Wheel
+	// tciClient.Notify(vfo1Wheel)
 
-	vfo2VolumeKey := ctrl.MidiKey{Channel: 2, Key: 0x00}
-	vfo2VolumeSlider := ctrl.NewRXVolumeSlider(0, client.VFOB, tciClient)
-	defer vfo2VolumeSlider.Close()
-	sliders[vfo2VolumeKey] = vfo2VolumeSlider
-	tciClient.Notify(vfo2VolumeSlider)
+	// vfo2Key := ctrl.MidiKey{Channel: 2, Key: 0x0a}
+	// vfo2Wheel := ctrl.NewVFOWheel(vfo2Key, 0, client.VFOB, tciClient)
+	// defer vfo2Wheel.Close()
+	// wheels[vfo2Key] = vfo2Wheel
+	// tciClient.Notify(vfo2Wheel)
 
-	vfo1BalanceKey := ctrl.MidiKey{Channel: 1, Key: 0x02}
-	vfo1BalanceSlider := ctrl.NewRXBalanceSlider(0, client.VFOA, tciClient)
-	defer vfo1BalanceSlider.Close()
-	sliders[vfo1BalanceKey] = vfo1BalanceSlider
-	tciClient.Notify(vfo1BalanceSlider)
+	// volumeKey := ctrl.MidiKey{Channel: 0, Key: 0x03}
+	// volumeSlider := ctrl.NewVolumeSlider(tciClient)
+	// defer volumeSlider.Close()
+	// sliders[volumeKey] = volumeSlider
+	// tciClient.Notify(volumeSlider)
 
-	vfo2BalanceKey := ctrl.MidiKey{Channel: 2, Key: 0x02}
-	vfo2BalanceSlider := ctrl.NewRXBalanceSlider(0, client.VFOB, tciClient)
-	defer vfo2BalanceSlider.Close()
-	sliders[vfo2BalanceKey] = vfo2BalanceSlider
-	tciClient.Notify(vfo2BalanceSlider)
+	// vfo1VolumeKey := ctrl.MidiKey{Channel: 1, Key: 0x00}
+	// vfo1VolumeSlider := ctrl.NewRXVolumeSlider(0, client.VFOA, tciClient)
+	// defer vfo1VolumeSlider.Close()
+	// sliders[vfo1VolumeKey] = vfo1VolumeSlider
+	// tciClient.Notify(vfo1VolumeSlider)
 
-	rxMixerKey := ctrl.MidiKey{Channel: 0, Key: 0x00}
-	rxMixerSlider := ctrl.NewRXMixer(0, tciClient)
-	defer rxMixerSlider.Close()
-	sliders[rxMixerKey] = rxMixerSlider
-	tciClient.Notify(rxMixerSlider)
+	// vfo2VolumeKey := ctrl.MidiKey{Channel: 2, Key: 0x00}
+	// vfo2VolumeSlider := ctrl.NewRXVolumeSlider(0, client.VFOB, tciClient)
+	// defer vfo2VolumeSlider.Close()
+	// sliders[vfo2VolumeKey] = vfo2VolumeSlider
+	// tciClient.Notify(vfo2VolumeSlider)
 
-	ritKey := ctrl.MidiKey{Channel: 1, Key: 0x08}
-	ritSlider := ctrl.NewRITSlider(0, tciClient)
-	defer ritSlider.Close()
-	sliders[ritKey] = ritSlider
-	tciClient.Notify(ritSlider)
+	// vfo1BalanceKey := ctrl.MidiKey{Channel: 1, Key: 0x02}
+	// vfo1BalanceSlider := ctrl.NewRXBalanceSlider(0, client.VFOA, tciClient)
+	// defer vfo1BalanceSlider.Close()
+	// sliders[vfo1BalanceKey] = vfo1BalanceSlider
+	// tciClient.Notify(vfo1BalanceSlider)
 
-	xitKey := ctrl.MidiKey{Channel: 2, Key: 0x08}
-	xitSlider := ctrl.NewXITSlider(0, tciClient)
-	defer xitSlider.Close()
-	sliders[xitKey] = xitSlider
-	tciClient.Notify(xitSlider)
+	// vfo2BalanceKey := ctrl.MidiKey{Channel: 2, Key: 0x02}
+	// vfo2BalanceSlider := ctrl.NewRXBalanceSlider(0, client.VFOB, tciClient)
+	// defer vfo2BalanceSlider.Close()
+	// sliders[vfo2BalanceKey] = vfo2BalanceSlider
+	// tciClient.Notify(vfo2BalanceSlider)
 
-	ritEnableKey := ctrl.MidiKey{Channel: 6, Key: 0x00}
-	ritEnableButton := ctrl.NewRITEnableButton(ritEnableKey, 0, ledController, tciClient)
-	buttons[ritEnableKey] = ritEnableButton
-	tciClient.Notify(ritEnableButton)
+	// rxMixerKey := ctrl.MidiKey{Channel: 0, Key: 0x00}
+	// rxMixerSlider := ctrl.NewRXMixer(0, tciClient)
+	// defer rxMixerSlider.Close()
+	// sliders[rxMixerKey] = rxMixerSlider
+	// tciClient.Notify(rxMixerSlider)
 
-	xitEnableKey := ctrl.MidiKey{Channel: 6, Key: 0x01}
-	xitEnableButton := ctrl.NewXITEnableButton(xitEnableKey, 0, ledController, tciClient)
-	buttons[xitEnableKey] = xitEnableButton
-	tciClient.Notify(xitEnableButton)
+	// ritKey := ctrl.MidiKey{Channel: 1, Key: 0x08}
+	// ritSlider := ctrl.NewRITSlider(0, tciClient)
+	// defer ritSlider.Close()
+	// sliders[ritKey] = ritSlider
+	// tciClient.Notify(ritSlider)
 
-	cwFilterKey := ctrl.MidiKey{Channel: 6, Key: 0x02}
-	cwFilterButton := ctrl.NewFilterBandButton(cwFilterKey, 0, -50, 50, ledController, tciClient)
-	buttons[cwFilterKey] = cwFilterButton
-	tciClient.Notify(cwFilterButton)
+	// xitKey := ctrl.MidiKey{Channel: 2, Key: 0x08}
+	// xitSlider := ctrl.NewXITSlider(0, tciClient)
+	// defer xitSlider.Close()
+	// sliders[xitKey] = xitSlider
+	// tciClient.Notify(xitSlider)
 
-	rttyFilterKey := ctrl.MidiKey{Channel: 6, Key: 0x03}
-	rttyFilterButton := ctrl.NewFilterBandButton(rttyFilterKey, 0, 1200, 1800, ledController, tciClient)
-	buttons[rttyFilterKey] = rttyFilterButton
-	tciClient.Notify(rttyFilterButton)
+	// ritEnableKey := ctrl.MidiKey{Channel: 6, Key: 0x00}
+	// ritEnableButton := ctrl.NewRITEnableButton(ritEnableKey, 0, ledController, tciClient)
+	// buttons[ritEnableKey] = ritEnableButton
+	// tciClient.Notify(ritEnableButton)
 
-	cwModeKey := ctrl.MidiKey{Channel: 7, Key: 0x00}
-	cwModeButton := ctrl.NewModeButton(cwModeKey, 0, client.ModeCW, ledController, tciClient)
-	buttons[cwModeKey] = cwModeButton
-	tciClient.Notify(cwModeButton)
+	// xitEnableKey := ctrl.MidiKey{Channel: 6, Key: 0x01}
+	// xitEnableButton := ctrl.NewXITEnableButton(xitEnableKey, 0, ledController, tciClient)
+	// buttons[xitEnableKey] = xitEnableButton
+	// tciClient.Notify(xitEnableButton)
 
-	digitalModeKey := ctrl.MidiKey{Channel: 7, Key: 0x01}
-	digitalModeButton := ctrl.NewModeButton(digitalModeKey, 0, client.ModeDIGU, ledController, tciClient)
-	buttons[digitalModeKey] = digitalModeButton
-	tciClient.Notify(digitalModeButton)
+	// cwFilterKey := ctrl.MidiKey{Channel: 6, Key: 0x02}
+	// cwFilterButton := ctrl.NewFilterBandButton(cwFilterKey, 0, -50, 50, ledController, tciClient)
+	// buttons[cwFilterKey] = cwFilterButton
+	// tciClient.Notify(cwFilterButton)
 
-	lsbModeKey := ctrl.MidiKey{Channel: 7, Key: 0x02}
-	lsbModeButton := ctrl.NewModeButton(lsbModeKey, 0, client.ModeLSB, ledController, tciClient)
-	buttons[lsbModeKey] = lsbModeButton
-	tciClient.Notify(lsbModeButton)
+	// rttyFilterKey := ctrl.MidiKey{Channel: 6, Key: 0x03}
+	// rttyFilterButton := ctrl.NewFilterBandButton(rttyFilterKey, 0, 1200, 1800, ledController, tciClient)
+	// buttons[rttyFilterKey] = rttyFilterButton
+	// tciClient.Notify(rttyFilterButton)
 
-	usbModeKey := ctrl.MidiKey{Channel: 7, Key: 0x03}
-	usbModeButton := ctrl.NewModeButton(usbModeKey, 0, client.ModeUSB, ledController, tciClient)
-	buttons[usbModeKey] = usbModeButton
-	tciClient.Notify(usbModeButton)
+	// cwModeKey := ctrl.MidiKey{Channel: 7, Key: 0x00}
+	// cwModeButton := ctrl.NewModeButton(cwModeKey, 0, client.ModeCW, ledController, tciClient)
+	// buttons[cwModeKey] = cwModeButton
+	// tciClient.Notify(cwModeButton)
+
+	// digitalModeKey := ctrl.MidiKey{Channel: 7, Key: 0x01}
+	// digitalModeButton := ctrl.NewModeButton(digitalModeKey, 0, client.ModeDIGU, ledController, tciClient)
+	// buttons[digitalModeKey] = digitalModeButton
+	// tciClient.Notify(digitalModeButton)
+
+	// lsbModeKey := ctrl.MidiKey{Channel: 7, Key: 0x02}
+	// lsbModeButton := ctrl.NewModeButton(lsbModeKey, 0, client.ModeLSB, ledController, tciClient)
+	// buttons[lsbModeKey] = lsbModeButton
+	// tciClient.Notify(lsbModeButton)
+
+	// usbModeKey := ctrl.MidiKey{Channel: 7, Key: 0x03}
+	// usbModeButton := ctrl.NewModeButton(usbModeKey, 0, client.ModeUSB, ledController, tciClient)
+	// buttons[usbModeKey] = usbModeButton
+	// tciClient.Notify(usbModeButton)
 
 	// setup the incoming MIDI communication
 	djControlIn, err := midi.OpenIn(drv, portNumber, portName)

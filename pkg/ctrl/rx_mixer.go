@@ -6,6 +6,8 @@ import (
 	"github.com/ftl/tci/client"
 )
 
+const MixerMapping MappingType = "rx_mixer"
+
 func NewRXMixer(trx int, controller RXMixController) *RXMixer {
 	const volumeTick = float64(60.0 / 127.0)
 	const balanceTick = float64(80.0 / 127.0)

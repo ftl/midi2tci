@@ -7,6 +7,18 @@ import (
 	"github.com/ftl/tci/client"
 )
 
+const VFOMapping MappingType = "vfo"
+
+func init() {
+	Factories[VFOMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+		vfo, err := AtoVFO(m.VFO)
+		if err != nil {
+			return nil, 0, err
+		}
+		return NewVFOWheel(m.MidiKey(), m.TRX, vfo, tciClient), WheelController, nil
+	}
+}
+
 func NewVFOWheel(key MidiKey, trx int, vfo client.VFO, controller VFOFrequencyController) *VFOWheel {
 	result := &VFOWheel{
 		key:        key,
