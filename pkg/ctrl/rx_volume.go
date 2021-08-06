@@ -12,6 +12,30 @@ const (
 	RXBalanceMapping MappingType = "rx_balance"
 )
 
+func init() {
+	Factories[EnableRXMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+		vfo, err := AtoVFO(m.VFO)
+		if err != nil {
+			return nil, 0, err
+		}
+		return NewRXChannelEnableButton(m.MidiKey(), m.TRX, vfo, led, tciClient), ButtonController, nil
+	}
+	Factories[RXVolumeMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+		vfo, err := AtoVFO(m.VFO)
+		if err != nil {
+			return nil, 0, err
+		}
+		return NewRXVolumeSlider(m.TRX, vfo, tciClient), SliderController, nil
+	}
+	Factories[RXBalanceMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+		vfo, err := AtoVFO(m.VFO)
+		if err != nil {
+			return nil, 0, err
+		}
+		return NewRXBalanceSlider(m.TRX, vfo, tciClient), SliderController, nil
+	}
+}
+
 func NewRXChannelEnableButton(key MidiKey, trx int, vfo client.VFO, led LED, rxChannelEnabler RXChannelEnabler) *RXChannelEnableButton {
 	return &RXChannelEnableButton{
 		key:              key,
