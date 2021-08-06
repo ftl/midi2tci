@@ -1,11 +1,24 @@
 package ctrl
 
-import "log"
+import (
+	"log"
+
+	"github.com/ftl/tci/client"
+)
 
 const (
 	MuteMapping   MappingType = "mute"
 	VolumeMapping MappingType = "volume"
 )
+
+func init() {
+	Factories[MuteMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+		return NewMuteButton(m.MidiKey(), led, tciClient), ButtonController, nil
+	}
+	Factories[VolumeMapping] = func(_ Mapping, _ LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+		return NewVolumeSlider(tciClient), SliderController, nil
+	}
+}
 
 func NewMuteButton(key MidiKey, led LED, muter Muter) *MuteButton {
 	return &MuteButton{

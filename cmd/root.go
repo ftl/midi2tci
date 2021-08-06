@@ -83,6 +83,8 @@ func run(_ *cobra.Command, _ []string) {
 		Mappings: []ctrl.Mapping{
 			{Type: ctrl.VFOMapping, Channel: 1, Key: 0x0a, TRX: 0, VFO: "VFOA"},
 			{Type: ctrl.VFOMapping, Channel: 2, Key: 0x0a, TRX: 0, VFO: "VFOB"},
+			{Type: ctrl.MuteMapping, Channel: 1, Key: 0x0c},
+			{Type: ctrl.VolumeMapping, Channel: 0, Key: 0x03},
 		},
 	}
 
