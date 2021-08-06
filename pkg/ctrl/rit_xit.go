@@ -1,6 +1,10 @@
 package ctrl
 
-import "log"
+import (
+	"log"
+
+	"github.com/ftl/tci/client"
+)
 
 const (
 	EnableRITMapping MappingType = "enable_rit"
@@ -8,6 +12,21 @@ const (
 	EnableXITMapping MappingType = "enable_xit"
 	XITMapping       MappingType = "xit"
 )
+
+func init() {
+	Factories[EnableRITMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+		return NewRITEnableButton(m.MidiKey(), m.TRX, led, tciClient), ButtonController, nil
+	}
+	Factories[RITMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+		return NewRITSlider(m.TRX, tciClient), SliderController, nil
+	}
+	Factories[EnableXITMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+		return NewXITEnableButton(m.MidiKey(), m.TRX, led, tciClient), ButtonController, nil
+	}
+	Factories[XITMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+		return NewXITSlider(m.TRX, tciClient), SliderController, nil
+	}
+}
 
 func NewRITEnableButton(key MidiKey, trx int, led LED, ritEnabler RITEnabler) *RITEnableButton {
 	return &RITEnableButton{
