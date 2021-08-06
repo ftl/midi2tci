@@ -41,7 +41,16 @@ func init() {
 			return nil, ButtonController, fmt.Errorf("Invalid source VFO %s: %v", srcVFOStr, err)
 		}
 
-		return NewSyncVFOFrequencyButton(srcTRX, srcVFO, m.TRX, vfo, tciClient, tciClient), ButtonController, nil
+		offset := 0
+		offsetStr, ok := m.Options["offset"]
+		if ok {
+			offset, err = strconv.Atoi(offsetStr)
+			if err != nil {
+				return nil, ButtonController, fmt.Errorf("Invalid offset %s: %v", offsetStr, err)
+			}
+		}
+
+		return NewSyncVFOFrequencyButton(srcTRX, srcVFO, m.TRX, vfo, offset, tciClient, tciClient), ButtonController, nil
 	}
 }
 
@@ -82,22 +91,26 @@ func (b *SplitEnableButton) SetSplitEnable(trx int, enabled bool) {
 	b.led.Set(b.key, enabled)
 }
 
-func NewSyncVFOFrequencyButton(srcTrx int, srcVFO client.VFO, dstTrx int, dstVFO client.VFO, controller VFOFrequencyController, provider VFOFrequencyProvider) *SyncVFOFrequencyButton {
+func NewSyncVFOFrequencyButton(srcTrx int, srcVFO client.VFO, dstTrx int, dstVFO client.VFO, offset int, controller VFOFrequencyController, provider VFOFrequencyProvider) *SyncVFOFrequencyButton {
 	return &SyncVFOFrequencyButton{
 		srcTrx:     srcTrx,
 		srcVFO:     srcVFO,
 		dstTrx:     dstTrx,
 		dstVFO:     dstVFO,
+		offset:     offset,
 		controller: controller,
 		provider:   provider,
 	}
 }
 
 type SyncVFOFrequencyButton struct {
-	srcTrx     int
-	srcVFO     client.VFO
-	dstTrx     int
-	dstVFO     client.VFO
+	srcTrx int
+	srcVFO client.VFO
+	dstTrx int
+	dstVFO client.VFO
+
+	offset int
+
 	controller VFOFrequencyController
 	provider   VFOFrequencyProvider
 }
@@ -112,5 +125,5 @@ func (b *SyncVFOFrequencyButton) Pressed() {
 		log.Printf("Cannot read VFO frequency: %v", err)
 		return
 	}
-	err = b.controller.SetVFOFrequency(b.dstTrx, b.dstVFO, frequency)
+	err = b.controller.SetVFOFrequency(b.dstTrx, b.dstVFO, frequency+b.offset)
 }
