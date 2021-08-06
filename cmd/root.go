@@ -101,6 +101,9 @@ func run(_ *cobra.Command, _ []string) {
 			{Type: ctrl.RITMapping, Channel: 1, Key: 0x08, TRX: 0},
 			{Type: ctrl.EnableXITMapping, Channel: 6, Key: 0x01, TRX: 0},
 			{Type: ctrl.XITMapping, Channel: 2, Key: 0x08, TRX: 0},
+			{Type: ctrl.EnableSplitMapping, Channel: 2, Key: 0x03, TRX: 0},
+			{Type: ctrl.SyncVFOFrequencyMapping, Channel: 1, Key: 0x05, TRX: 0, VFO: "VFOA", Options: map[string]string{"src_trx": "0", "src_vfo": "VFOB"}},
+			{Type: ctrl.SyncVFOFrequencyMapping, Channel: 2, Key: 0x05, TRX: 0, VFO: "VFOB", Options: map[string]string{"src_trx": "0", "src_vfo": "VFOA"}},
 		},
 	}
 

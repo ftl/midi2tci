@@ -1,7 +1,9 @@
 package ctrl
 
 import (
+	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/ftl/tci/client"
 )
@@ -10,6 +12,38 @@ const (
 	EnableSplitMapping      MappingType = "enable_split"
 	SyncVFOFrequencyMapping MappingType = "sync_vfo_frequency"
 )
+
+func init() {
+	Factories[EnableSplitMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+		return NewSplitEnableButton(m.MidiKey(), m.TRX, led, tciClient), ButtonController, nil
+	}
+	Factories[SyncVFOFrequencyMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+		vfo, err := AtoVFO(m.VFO)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		srcTRXStr, ok := m.Options["src_trx"]
+		if !ok {
+			return nil, ButtonController, fmt.Errorf("No source TRX configured. Use options[\"src_trx\"]=\"<source TRX>\" to configure the source TRX.")
+		}
+		srcTRX, err := strconv.Atoi(srcTRXStr)
+		if err != nil {
+			return nil, ButtonController, fmt.Errorf("Invalid source TRX %s: %v", srcTRXStr, err)
+		}
+
+		srcVFOStr, ok := m.Options["src_vfo"]
+		if !ok {
+			return nil, ButtonController, fmt.Errorf("No source VFO configured. Use options[\"src_vfo\"]=\"<source VFO>\" to configure the source VFO.")
+		}
+		srcVFO, err := AtoVFO(srcVFOStr)
+		if err != nil {
+			return nil, ButtonController, fmt.Errorf("Invalid source VFO %s: %v", srcVFOStr, err)
+		}
+
+		return NewSyncVFOFrequencyButton(srcTRX, srcVFO, m.TRX, vfo, tciClient, tciClient), ButtonController, nil
+	}
+}
 
 func NewSplitEnableButton(key MidiKey, trx int, led LED, splitEnabler SplitEnabler) *SplitEnableButton {
 	return &SplitEnableButton{
