@@ -35,6 +35,7 @@ var rootFlags = struct {
 	portNumber int
 	portName   string
 	tciAddress string
+	configFile string
 }{}
 
 func Execute() {
@@ -46,29 +47,49 @@ func Execute() {
 
 func init() {
 	log.Printf("midi2tci %s", version)
-	rootCmd.PersistentFlags().IntVar(&rootFlags.portNumber, "portNumber", 0, "number of the MIDI port (use list to find out the available ports)")
+	rootCmd.PersistentFlags().IntVar(&rootFlags.portNumber, "portNumber", -1, "number of the MIDI port (use list to find out the available ports)")
 	rootCmd.PersistentFlags().StringVar(&rootFlags.portName, "portName", "", "name of the MIDI port (use list to find out the available ports)")
-	rootCmd.PersistentFlags().StringVar(&rootFlags.tciAddress, "tci", "localhost:40001", "the address of the TCI server")
+	rootCmd.PersistentFlags().StringVar(&rootFlags.tciAddress, "tci", "", "the address of the TCI server")
 	rootCmd.PersistentFlags().BoolVar(&rootFlags.trace, "trace", false, "print a trace of all incoming MIDI messages")
+	rootCmd.PersistentFlags().StringVar(&rootFlags.configFile, "config", "./config.json", "the configuration file")
 }
 
 func run(_ *cobra.Command, _ []string) {
 	ctx, done := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer done()
 
+	config, err := cfg.ReadFile(rootFlags.configFile)
+	if err != nil {
+		log.Printf("Cannot read configuration file: %v", err)
+		config = cfg.Configuration{}
+	} else {
+		log.Printf("Using configuration from %s", rootFlags.configFile)
+	}
+
 	var portNumber int
 	var portName string
 	if rootFlags.portName != "" {
 		portNumber = -1
 		portName = rootFlags.portName
-	} else {
+	} else if rootFlags.portNumber >= 0 {
 		portNumber = rootFlags.portNumber
+		portName = ""
+	} else if config.PortName != "" {
+		portNumber = -1
+		portName = config.PortName
+	} else {
+		portNumber = config.PortNumber
 		portName = ""
 	}
 
-	tciHost, err := parseTCIAddr(rootFlags.tciAddress)
+	var tciHost *net.TCPAddr
+	if rootFlags.tciAddress != "" {
+		tciHost, err = parseTCIAddr(rootFlags.tciAddress)
+	} else {
+		tciHost, err = parseTCIAddr(config.TCIAddress)
+	}
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Invalid TCI host address: %v", err)
 	}
 
 	drv, err := driver.New()
@@ -77,40 +98,8 @@ func run(_ *cobra.Command, _ []string) {
 	}
 	defer drv.Close()
 
-	config := cfg.Configuration{
-		PortNumber: portNumber,
-		PortName:   portName,
-		Mappings: []ctrl.Mapping{
-			{Type: ctrl.VFOMapping, Channel: 1, Key: 0x0a, TRX: 0, VFO: "VFOA"},
-			{Type: ctrl.VFOMapping, Channel: 2, Key: 0x0a, TRX: 0, VFO: "VFOB"},
-			{Type: ctrl.MuteMapping, Channel: 1, Key: 0x0c},
-			{Type: ctrl.VolumeMapping, Channel: 0, Key: 0x03},
-			{Type: ctrl.EnableRXMapping, Channel: 2, Key: 0x0c, TRX: 0, VFO: "VFOB"},
-			{Type: ctrl.MixerMapping, Channel: 0, Key: 0x00, TRX: 0},
-			{Type: ctrl.RXVolumeMapping, Channel: 1, Key: 0x00, TRX: 0, VFO: "VFOA"},
-			{Type: ctrl.RXVolumeMapping, Channel: 2, Key: 0x00, TRX: 0, VFO: "VFOB"},
-			{Type: ctrl.RXBalanceMapping, Channel: 1, Key: 0x02, TRX: 0, VFO: "VFOA"},
-			{Type: ctrl.RXBalanceMapping, Channel: 2, Key: 0x02, TRX: 0, VFO: "VFOB"},
-			{Type: ctrl.ModeMapping, Channel: 7, Key: 0x00, TRX: 0, Options: map[string]string{"mode": "CW"}},
-			{Type: ctrl.ModeMapping, Channel: 7, Key: 0x01, TRX: 0, Options: map[string]string{"mode": "DIGU"}},
-			{Type: ctrl.ModeMapping, Channel: 7, Key: 0x02, TRX: 0, Options: map[string]string{"mode": "LSB"}},
-			{Type: ctrl.ModeMapping, Channel: 7, Key: 0x03, TRX: 0, Options: map[string]string{"mode": "USB"}},
-			{Type: ctrl.FilterMapping, Channel: 6, Key: 0x02, TRX: 0, Options: map[string]string{"min": "-50", "max": "50"}},
-			{Type: ctrl.FilterMapping, Channel: 6, Key: 0x03, TRX: 0, Options: map[string]string{"min": "1400", "max": "1600"}},
-			{Type: ctrl.EnableRITMapping, Channel: 6, Key: 0x00, TRX: 0},
-			{Type: ctrl.RITMapping, Channel: 1, Key: 0x08, TRX: 0},
-			{Type: ctrl.EnableXITMapping, Channel: 6, Key: 0x01, TRX: 0},
-			{Type: ctrl.XITMapping, Channel: 2, Key: 0x08, TRX: 0},
-			{Type: ctrl.EnableSplitMapping, Channel: 2, Key: 0x03, TRX: 0},
-			{Type: ctrl.SyncVFOFrequencyMapping, Channel: 1, Key: 0x05, TRX: 0, VFO: "VFOA", Options: map[string]string{"src_trx": "0", "src_vfo": "VFOB"}},
-			{Type: ctrl.SyncVFOFrequencyMapping, Channel: 2, Key: 0x05, TRX: 0, VFO: "VFOB", Options: map[string]string{"src_trx": "0", "src_vfo": "VFOA"}},
-			{Type: ctrl.SyncVFOFrequencyMapping, Channel: 1, Key: 0x06, TRX: 0, VFO: "VFOA", Options: map[string]string{"src_trx": "0", "src_vfo": "VFOB", "offset": "-1000"}},
-			{Type: ctrl.SyncVFOFrequencyMapping, Channel: 2, Key: 0x06, TRX: 0, VFO: "VFOB", Options: map[string]string{"src_trx": "0", "src_vfo": "VFOA", "offset": "1000"}},
-		},
-	}
-
 	// setup the outgoing MIDI communication
-	djControlOut, err := midi.OpenOut(drv, config.PortNumber, config.PortName)
+	djControlOut, err := midi.OpenOut(drv, portNumber, portName)
 	if err != nil {
 		log.Fatal(err)
 	}

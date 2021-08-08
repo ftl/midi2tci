@@ -1,0 +1,32 @@
+{
+    "port_number": 1,
+	"port_name":   null,
+    "tci_address": "localhost:40001",
+    "mappings": [
+        {"type": "vfo", "channel": 1, "key": 10, "trx": 0, "vfo": "VFOA"},
+        {"type": "vfo", "channel": 2, "key": 10, "trx": 0, "vfo": "VFOB"},
+        {"type": "mute", "channel": 1, "key": 12},
+        {"type": "volume", "channel": 0, "key": 3},
+        {"type": "enable_rx", "channel": 2, "key": 12, "trx": 0, "vfo": "VFOB"},
+        {"type": "rx_mixer", "channel": 0, "key": 0, "trx": 0},
+        {"type": "rx_volume", "channel": 1, "key": 0, "trx": 0, "vfo": "VFOA"},
+        {"type": "rx_volume", "channel": 2, "key": 0, "trx": 0, "vfo": "VFOB"},
+        {"type": "rx_balance", "channel": 1, "key": 2, "trx": 0, "vfo": "VFOA"},
+        {"type": "rx_balance", "channel": 2, "key": 2, "trx": 0, "vfo": "VFOB"},
+        {"type": "mode", "channel": 7, "key": 0, "trx": 0, "options": {"mode": "CW"}},
+        {"type": "mode", "channel": 7, "key": 1, "trx": 0, "options": {"mode": "DIGU"}},
+        {"type": "mode", "channel": 7, "key": 2, "trx": 0, "options": {"mode": "LSB"}},
+        {"type": "mode", "channel": 7, "key": 3, "trx": 0, "options": {"mode": "USB"}},
+        {"type": "filter", "channel": 6, "key": 2, "trx": 0, "options": {"min": "-50", "max": "50"}},
+        {"type": "filter", "channel": 6, "key": 3, "trx": 0, "options": {"min": "1250", "max": "1750"}},
+        {"type": "enable_rit", "channel": 6, "key": 0, "trx": 0},
+        {"type": "rit", "channel": 1, "key": 8, "trx": 0},
+        {"type": "enable_xit", "channel": 6, "key": 1, "trx": 0},
+        {"type": "xit", "channel": 2, "key": 8, "trx": 0},
+        {"type": "enable_split", "channel": 2, "key": 3, "trx": 0},
+        {"type": "sync_vfo_frequency", "channel": 1, "key": 5, "trx": 0, "vfo": "VFOA", "options": {"src_trx": "0", "src_vfo": "VFOB"}},
+        {"type": "sync_vfo_frequency", "channel": 2, "key": 5, "trx": 0, "vfo": "VFOB", "options": {"src_trx": "0", "src_vfo": "VFOA"}},
+        {"type": "sync_vfo_frequency", "channel": 1, "key": 6, "trx": 0, "vfo": "VFOA", "options": {"src_trx": "0", "src_vfo": "VFOB", "offset": "-1000"}},
+        {"type": "sync_vfo_frequency", "channel": 2, "key": 6, "trx": 0, "vfo": "VFOB", "options": {"src_trx": "0", "src_vfo": "VFOA", "offset": "1000"}}
+    ]
+}
