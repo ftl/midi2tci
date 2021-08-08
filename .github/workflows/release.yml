@@ -1,0 +1,74 @@
+name: Release-Build
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+jobs:
+
+  build:
+    name: Build
+    runs-on: ubuntu-20.04
+    steps:
+    - id: version_number
+      run: echo "::set-output name=version_number::$(echo '${{github.ref}}' | sed -E 's#refs/tags/v##')"
+ 
+    - name: Set up Go 1.15
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+        
+    - name: Caching build artifacts and modules
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-modules-${{ hashFiles('**/go.sum') }}
+
+    - name: Get dependencies
+      run: go get -v -t -d ./...
+
+    - name: Build
+      run: |
+        echo "Version ${{ steps.version_number.outputs.version_number }}"
+        GOOS=linux GOARCH=amd64 go build -v -ldflags "-X main.version=${{ steps.version_number.outputs.version_number }}" -o ./bin/midi2tci main.go
+        GOOS=linux GOARCH=arm GOARM=5 go build -v -ldflags "-X main.version=${{ steps.version_number.outputs.version_number }}" -o ./bin/pimidi2tci main.go
+
+    - name: Test
+      run: go test -v -timeout=30s ./...
+    
+    - name: Create versioned binaries
+      run: |
+        cp ./bin/midi2tci ./midi2tci-${{ steps.version_number.outputs.version_number }}
+        cp ./bin/pimidi2tci ./pimidi2tci-${{ steps.version_number.outputs.version_number }}
+
+    - name: 'Upload amd64 binary'
+      uses: actions/upload-artifact@v2
+      with:
+        name: midi2tci-binary-amd64
+        path: ./bin/midi2tci
+
+    - name: 'Upload armhf binary'
+      uses: actions/upload-artifact@v2
+      with:
+        name: midi2tci-binary-armhf
+        path: ./bin/pimidi2tci
+
+    - name: Upload amd64 binary to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: midi2tci-${{ steps.version_number.outputs.version_number }}
+        tag: ${{ github.ref }}
+
+    - name: Upload armhf binary to release
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: pimidi2tci-${{ steps.version_number.outputs.version_number }}
+        tag: ${{ github.ref }}
