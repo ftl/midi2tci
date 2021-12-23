@@ -109,8 +109,7 @@ func run(_ *cobra.Command, _ []string) {
 	defer ledController.Close()
 
 	// open the TCI connection
-	tciClient := client.KeepOpen(tciHost, 10*time.Second)
-	tciClient.SetTimeout(500 * time.Millisecond)
+	tciClient := client.KeepOpen(tciHost, 10*time.Second, false)
 
 	// setup the configured controls
 	for _, mapping := range config.Mappings {

@@ -2,6 +2,7 @@ package ctrl
 
 import (
 	"log"
+	"math"
 	"time"
 
 	"github.com/ftl/tci/client"
@@ -31,8 +32,15 @@ func NewVFOWheel(key MidiKey, trx int, vfo client.VFO, controller VFOFrequencyCo
 	}
 
 	go func() {
+		const (
+			scanInterval  = 10 * time.Millisecond
+			fastThreshold = 3
+			slowVelocity  = 1.0
+			fastVelocity  = 10.0 // 1.8
+		)
+
 		defer close(result.closed)
-		ticker := time.NewTicker(10 * time.Millisecond)
+		ticker := time.NewTicker(scanInterval)
 		defer ticker.Stop()
 
 		accumulatedTurns := 0
@@ -54,7 +62,14 @@ func NewVFOWheel(key MidiKey, trx int, vfo client.VFO, controller VFOFrequencyCo
 				if accumulatedTurns == 0 {
 					turning = false
 				} else if accumulatedTurns != 0 && frequency != 0 {
-					frequency = frequency + int(float64(accumulatedTurns)*1.8)
+					var velocity float64
+					if math.Abs(float64(accumulatedTurns)) < fastThreshold {
+						velocity = slowVelocity
+					} else {
+						velocity = fastVelocity
+					}
+					delta := int(float64(accumulatedTurns) * velocity)
+					frequency = frequency + delta
 					err := result.controller.SetVFOFrequency(result.trx, result.vfo, frequency)
 					if err != nil {
 						log.Printf("Cannot change frequency to %d: %v", result.frequency, err)
