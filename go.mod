@@ -1,11 +1,11 @@
 module github.com/ftl/midi2tci
 
-go 1.17
+go 1.18
 
 // replace github.com/ftl/tci => ../tci
 
 require (
-	github.com/ftl/tci v0.2.1
+	github.com/ftl/tci v0.3.0
 	github.com/spf13/cobra v1.1.3
 	gitlab.com/gomidi/midi v1.23.4
 	gitlab.com/gomidi/rtmididrv v0.11.0

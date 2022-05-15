@@ -32,6 +32,7 @@ var rootCmd = &cobra.Command{
 
 var rootFlags = struct {
 	trace      bool
+	traceTci   bool
 	portNumber int
 	portName   string
 	tciAddress string
@@ -51,6 +52,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&rootFlags.portName, "portName", "", "name of the MIDI port (use list to find out the available ports)")
 	rootCmd.PersistentFlags().StringVar(&rootFlags.tciAddress, "tci", "", "the address of the TCI server")
 	rootCmd.PersistentFlags().BoolVar(&rootFlags.trace, "trace", false, "print a trace of all incoming MIDI messages")
+	rootCmd.PersistentFlags().BoolVar(&rootFlags.traceTci, "traceTci", false, "print tracing information of the TCI client")
 	rootCmd.PersistentFlags().StringVar(&rootFlags.configFile, "config", "./config.json", "the configuration file")
 }
 
@@ -109,7 +111,7 @@ func run(_ *cobra.Command, _ []string) {
 	defer ledController.Close()
 
 	// open the TCI connection
-	tciClient := client.KeepOpen(tciHost, 10*time.Second, false)
+	tciClient := client.KeepOpen(tciHost, 10*time.Second, rootFlags.traceTci)
 
 	// setup the configured controls
 	for _, mapping := range config.Mappings {
