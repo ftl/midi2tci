@@ -14,7 +14,7 @@ func init() {
 	Factories[ModeMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControllerType, error) {
 		mode, ok := m.Options["mode"]
 		if !ok {
-			return nil, ButtonController, fmt.Errorf("No mode configured. Use options[\"mode\"]=\"<mode>\" to configure the mode you want to select.")
+			return nil, ButtonController, fmt.Errorf("no mode configured. Use options[\"mode\"]=\"<mode>\" to configure the mode you want to select")
 
 		}
 		mode = strings.TrimSpace(strings.ToLower(mode))

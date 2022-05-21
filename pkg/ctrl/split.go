@@ -25,20 +25,20 @@ func init() {
 
 		srcTRXStr, ok := m.Options["src_trx"]
 		if !ok {
-			return nil, ButtonController, fmt.Errorf("No source TRX configured. Use options[\"src_trx\"]=\"<source TRX>\" to configure the source TRX.")
+			return nil, ButtonController, fmt.Errorf("no source TRX configured. Use options[\"src_trx\"]=\"<source TRX>\" to configure the source TRX")
 		}
 		srcTRX, err := strconv.Atoi(srcTRXStr)
 		if err != nil {
-			return nil, ButtonController, fmt.Errorf("Invalid source TRX %s: %v", srcTRXStr, err)
+			return nil, ButtonController, fmt.Errorf("invalid source TRX %s: %v", srcTRXStr, err)
 		}
 
 		srcVFOStr, ok := m.Options["src_vfo"]
 		if !ok {
-			return nil, ButtonController, fmt.Errorf("No source VFO configured. Use options[\"src_vfo\"]=\"<source VFO>\" to configure the source VFO.")
+			return nil, ButtonController, fmt.Errorf("no source VFO configured. Use options[\"src_vfo\"]=\"<source VFO>\" to configure the source VFO")
 		}
 		srcVFO, err := AtoVFO(srcVFOStr)
 		if err != nil {
-			return nil, ButtonController, fmt.Errorf("Invalid source VFO %s: %v", srcVFOStr, err)
+			return nil, ButtonController, fmt.Errorf("invalid source VFO %s: %v", srcVFOStr, err)
 		}
 
 		offset := 0
@@ -46,7 +46,7 @@ func init() {
 		if ok {
 			offset, err = strconv.Atoi(offsetStr)
 			if err != nil {
-				return nil, ButtonController, fmt.Errorf("Invalid offset %s: %v", offsetStr, err)
+				return nil, ButtonController, fmt.Errorf("invalid offset %s: %v", offsetStr, err)
 			}
 		}
 
@@ -126,4 +126,7 @@ func (b *SyncVFOFrequencyButton) Pressed() {
 		return
 	}
 	err = b.controller.SetVFOFrequency(b.dstTrx, b.dstVFO, frequency+b.offset)
+	if err != nil {
+		log.Printf("Cannot write VFO frequency: %v", err)
+	}
 }

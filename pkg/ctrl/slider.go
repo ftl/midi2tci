@@ -1,6 +1,8 @@
 package ctrl
 
-import "time"
+import (
+	"time"
+)
 
 func NewSlider(set func(int), translate func(int) int) *Slider {
 	result := &Slider{
@@ -68,6 +70,7 @@ func (s *Slider) start() {
 
 				select {
 				case tx <- selectedValue:
+					activeValue = selectedValue
 					pending = false
 				default:
 					pending = true
@@ -80,6 +83,7 @@ func (s *Slider) start() {
 
 				select {
 				case tx <- selectedValue:
+					activeValue = selectedValue
 					pending = false
 				default:
 					pending = true
