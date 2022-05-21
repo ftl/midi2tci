@@ -107,6 +107,16 @@ func run(_ *cobra.Command, _ []string) {
 	}
 	log.Printf("Opened %s successfully for writing", djControlOut)
 	wr := writer.New(djControlOut)
+
+	initMessages := make([]midi.Message, len(config.InitSequence))
+	for i, raw := range config.InitSequence {
+		initMessages[i] = NewRawMessage(raw)
+		log.Printf("init command % 2X", initMessages[i].Raw())
+	}
+	if len(initMessages) > 0 {
+		writer.WriteMessages(wr, initMessages)
+	}
+
 	ledController := NewLEDController(wr)
 	defer ledController.Close()
 
@@ -228,6 +238,20 @@ func validOptionalPort(port string) bool {
 		}
 	}
 	return true
+}
+
+func NewRawMessage(raw []byte) midi.Message {
+	return rawMessage(raw)
+}
+
+type rawMessage []byte
+
+func (m rawMessage) String() string {
+	return fmt.Sprintf("raw MIDI message: % 2X", []byte(m))
+}
+
+func (m rawMessage) Raw() []byte {
+	return []byte(m)
 }
 
 func NewLEDController(w writer.ChannelWriter) *LEDController {

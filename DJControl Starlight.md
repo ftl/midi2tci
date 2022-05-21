@@ -18,10 +18,9 @@ The value of the velocity encodes the LED color:
 
 * blue: bit 0 1
 * green: bit 2 3 4
-* red: bit 5 6 7
-* white: bit 8
+* red: bit 5 6
 
-As bits 7..0: `wrrrgggbb`
+As bits 7..0: `0rrgggbb`
 
 When the "white" bit is on, the other bits are ignored.
 
