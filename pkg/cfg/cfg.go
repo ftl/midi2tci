@@ -9,11 +9,13 @@ import (
 )
 
 type Configuration struct {
-	PortNumber   int            `json:"port_number,omitempty"`
-	PortName     string         `json:"port_name,omitempty"`
-	TCIAddress   string         `json:"tci_address,omitempty"`
-	InitSequence [][]byte       `json:"init_sequence,omitempty"`
-	Mappings     []ctrl.Mapping `json:"mappings"`
+	PortNumber         int            `json:"port_number,omitempty"`
+	PortName           string         `json:"port_name,omitempty"`
+	TCIAddress         string         `json:"tci_address,omitempty"`
+	InitSequence       [][]byte       `json:"init_sequence,omitempty"`
+	ConnectSequence    [][]byte       `json:"connect_sequence,omitempty"`
+	DisconnectSequence [][]byte       `json:"disconnect_sequence,omitempty"`
+	Mappings           []ctrl.Mapping `json:"mappings"`
 }
 
 func ReadFile(filename string) (Configuration, error) {

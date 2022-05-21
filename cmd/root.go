@@ -108,13 +108,12 @@ func run(_ *cobra.Command, _ []string) {
 	log.Printf("Opened %s successfully for writing", djControlOut)
 	wr := writer.New(djControlOut)
 
-	initMessages := make([]midi.Message, len(config.InitSequence))
-	for i, raw := range config.InitSequence {
-		initMessages[i] = NewRawMessage(raw)
-		log.Printf("init command % 2X", initMessages[i].Raw())
-	}
-	if len(initMessages) > 0 {
-		writer.WriteMessages(wr, initMessages)
+	if len(config.InitSequence) > 0 {
+		log.Print("MIDI init sequence")
+		err = SendRawMidiSequence(wr, config.InitSequence)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	ledController := NewLEDController(wr)
@@ -122,6 +121,11 @@ func run(_ *cobra.Command, _ []string) {
 
 	// open the TCI connection
 	tciClient := client.KeepOpen(tciHost, 10*time.Second, rootFlags.traceTci)
+	tciClient.Notify(&connectionListener{
+		midiWriter:         wr,
+		connectSequence:    config.ConnectSequence,
+		disconnectSequence: config.DisconnectSequence,
+	})
 
 	// setup the configured controls
 	for _, mapping := range config.Mappings {
@@ -238,6 +242,29 @@ func validOptionalPort(port string) bool {
 		}
 	}
 	return true
+}
+
+type connectionListener struct {
+	midiWriter         writer.ChannelWriter
+	connectSequence    [][]byte
+	disconnectSequence [][]byte
+}
+
+func (l *connectionListener) Connected(connected bool) {
+	if connected {
+		SendRawMidiSequence(l.midiWriter, l.connectSequence)
+	} else {
+		SendRawMidiSequence(l.midiWriter, l.disconnectSequence)
+	}
+}
+
+func SendRawMidiSequence(w writer.ChannelWriter, sequence [][]byte) error {
+	messages := make([]midi.Message, len(sequence))
+	for i, raw := range sequence {
+		messages[i] = NewRawMessage(raw)
+		log.Printf("%s", messages[i])
+	}
+	return writer.WriteMessages(w, messages)
 }
 
 func NewRawMessage(raw []byte) midi.Message {
