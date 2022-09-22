@@ -183,6 +183,19 @@ func run(_ *cobra.Command, _ []string) {
 				slider.Changed(int(value))
 			}
 		}),
+		reader.Pitchbend(func(_ *reader.Position, channel uint8, value int16) {
+			scaledValue := uint8((value + 0x2000) >> 7)
+			midiKey := ctrl.MidiKey{Channel: channel, Key: 0}
+			wheel, ok := wheels[midiKey]
+			if ok {
+				delta := int(scaledValue) - int(0x40)
+				wheel.Turned(delta)
+			}
+			slider, ok := sliders[midiKey]
+			if ok {
+				slider.Changed(int(scaledValue))
+			}
+		}),
 		reader.Each(func(_ *reader.Position, msg midi.Message) {
 			if rootFlags.trace {
 				log.Printf("rx: %#v", msg)

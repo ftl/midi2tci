@@ -47,10 +47,16 @@ $ midi2tci --portNumber=1 --trace
 2021/08/08 09:59:50 Cannot read configuration file: open ./config.json: no such file or directory
 2021/08/08 09:59:50 Opened DJControl Starlight:DJControl Starlight MIDI 1 24:0 successfully for writing
 2021/08/08 09:59:50 Opened DJControl Starlight:DJControl Starlight MIDI 1 24:0 successfully for reading
-2021/08/08 09:59:59 rx: channel.ControlChange{channel:0x1, controller:0xa, value:0x1}
+2021/08/08 09:59:51 rx: channel.ControlChange{channel:0x1, controller:0xa, value:0x1}
 ```
 
 The example shows that the control I want to use for VFOA has the setting channel=1 and key=10 (= 0x0a). 
+
+```
+2021/08/08 09:59:59 rx: channel.Pitchbend{channel:0x0, value:4304, absValue:0x30d0}
+```
+
+This example shows a control that send Pitchbend events over MIDI. In this case the key parameter of the mapping needs to be 0 (key=0).
 
 ## License
 
