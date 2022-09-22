@@ -3,10 +3,8 @@ package ctrl
 import (
 	"fmt"
 	"log"
-	"math"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ftl/tci/client"
 )
@@ -41,120 +39,42 @@ func init() {
 			stepSize = 10
 		}
 
-		return NewVFOWheel(m.MidiKey(), m.TRX, vfo, reverseDirection, stepSize, dynamicMode, tciClient), WheelController, nil
+		return NewVFOEncoder(m.TRX, vfo, stepSize, reverseDirection, dynamicMode, tciClient), EncoderController, nil
 	}
 }
 
-func NewVFOWheel(key MidiKey, trx int, vfo client.VFO, reverseDirection bool, stepSize int, dynamicMode bool, controller VFOFrequencyController) *VFOWheel {
-	result := &VFOWheel{
-		key:        key,
-		trx:        trx,
-		vfo:        vfo,
-		controller: controller,
-		frequency:  make(chan int, 1000),
-		turns:      make(chan int, 1000),
-		closed:     make(chan struct{}),
-	}
-	direction := 1
-	if reverseDirection {
-		direction = -1
-	}
-
-	go func() {
-		const (
-			scanInterval = 10 * time.Millisecond
-		)
-
-		defer close(result.closed)
-		ticker := time.NewTicker(scanInterval)
-		defer ticker.Stop()
-
-		accumulatedTurns := 0
-		turning := false
-		frequency := 0
-		for {
-			select {
-			case turns, valid := <-result.turns:
-				if !valid {
-					return
-				}
-				if dynamicMode {
-					turns = stepSize * turns
-				} else {
-					if turns < 0 {
-						turns = -stepSize
-					} else if turns > 0 {
-						turns = stepSize
-					}
-				}
-				accumulatedTurns += (turns * direction)
-				turning = frequency > 0
-			case f := <-result.frequency:
-				if !turning {
-					frequency = f
-				}
-			case <-ticker.C:
-
-				if accumulatedTurns == 0 {
-					turning = false
-					break
-				}
-				if frequency == 0 {
-					break
-				}
-
-				nextFrequency := int(math.Round(float64(frequency+accumulatedTurns)/float64(stepSize))) * stepSize
-				usedSteps := nextFrequency - frequency
-
-				frequency = nextFrequency
-				accumulatedTurns -= usedSteps
-				if accumulatedTurns < 0 {
-					accumulatedTurns = 0
-				}
-
-				err := result.controller.SetVFOFrequency(result.trx, result.vfo, frequency)
+func NewVFOEncoder(trx int, vfo client.VFO, stepSize int, reverseDirection bool, dynamicMode bool, controller VFOFrequencyController) *VFOEncoder2 {
+	return &VFOEncoder{
+		Encoder: NewEncoder(
+			func(frequency int) {
+				err := controller.SetVFOFrequency(trx, vfo, frequency)
 				if err != nil {
-					log.Printf("Cannot change frequency to %d: %v", result.frequency, err)
+					log.Printf("Cannot change frequency to %d: %v", frequency, err)
 				}
-			}
-		}
-	}()
-
-	return result
+			},
+			func(frequency int) int { return frequency },
+			stepSize,
+			reverseDirection,
+			dynamicMode,
+		),
+		trx: trx,
+		vfo: vfo,
+	}
 }
 
-type VFOWheel struct {
-	key        MidiKey
-	trx        int
-	vfo        client.VFO
-	controller VFOFrequencyController
+type VFOEncoder struct {
+	*Encoder
+	trx int
+	vfo client.VFO
+}
 
-	frequency chan int
-	turns     chan int
-	closed    chan struct{}
+func (e *VFOEncoder) SetVFOFrequency(trx int, vfo client.VFO, frequency int) {
+	if trx != e.trx || vfo != e.vfo {
+		return
+	}
+	e.Encoder.SetActiveValue(frequency)
 }
 
 type VFOFrequencyController interface {
 	SetVFOFrequency(trx int, vfo client.VFO, frequency int) error
-}
-
-func (w *VFOWheel) Close() {
-	select {
-	case <-w.closed:
-		return
-	default:
-		close(w.turns)
-		<-w.closed
-	}
-}
-
-func (w *VFOWheel) Turned(turns int) {
-	w.turns <- turns
-}
-
-func (w *VFOWheel) SetVFOFrequency(trx int, vfo client.VFO, frequency int) {
-	if trx != w.trx || vfo != w.vfo {
-		return
-	}
-	w.frequency <- frequency
 }

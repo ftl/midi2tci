@@ -39,7 +39,7 @@ type ControllerType int
 const (
 	ButtonController ControllerType = iota
 	SliderController
-	WheelController
+	EncoderController
 )
 
 type ControllerFactory func(Mapping, LED, *client.Client) (interface{}, ControllerType, error)

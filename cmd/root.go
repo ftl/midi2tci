@@ -149,10 +149,10 @@ func run(_ *cobra.Command, _ []string) {
 			slider := controller.(Slider)
 			defer slider.Close()
 			sliders[mapping.MidiKey()] = slider
-		case ctrl.WheelController:
-			wheel := controller.(Wheel)
-			defer wheel.Close()
-			wheels[mapping.MidiKey()] = wheel
+		case ctrl.EncoderController:
+			encoder := controller.(Encoder)
+			defer encoder.Close()
+			encoders[mapping.MidiKey()] = encoder
 		}
 		tciClient.Notify(controller)
 	}
@@ -173,10 +173,10 @@ func run(_ *cobra.Command, _ []string) {
 		}),
 		reader.ControlChange(func(_ *reader.Position, channel, controller, value uint8) {
 			midiKey := ctrl.MidiKey{Channel: channel, Key: controller}
-			wheel, ok := wheels[midiKey]
+			encoder, ok := encoders[midiKey]
 			if ok {
 				delta := int(value) - int(0x40)
-				wheel.Turned(delta)
+				encoder.Turned(delta)
 			}
 			slider, ok := sliders[midiKey]
 			if ok {
@@ -186,10 +186,10 @@ func run(_ *cobra.Command, _ []string) {
 		reader.Pitchbend(func(_ *reader.Position, channel uint8, value int16) {
 			scaledValue := uint8((value + 0x2000) >> 7)
 			midiKey := ctrl.MidiKey{Channel: channel, Key: 0}
-			wheel, ok := wheels[midiKey]
+			encoder, ok := encoders[midiKey]
 			if ok {
 				delta := int(scaledValue) - int(0x40)
-				wheel.Turned(delta)
+				encoder.Turned(delta)
 			}
 			slider, ok := sliders[midiKey]
 			if ok {
@@ -341,12 +341,12 @@ type Button interface {
 
 var buttons map[ctrl.MidiKey]Button = make(map[ctrl.MidiKey]Button)
 
-type Wheel interface {
+type Encoder interface {
 	Turned(delta int)
 	Close()
 }
 
-var wheels map[ctrl.MidiKey]Wheel = make(map[ctrl.MidiKey]Wheel)
+var encoders map[ctrl.MidiKey]Encoder = make(map[ctrl.MidiKey]Encoder)
 
 type Slider interface {
 	Changed(value int)
