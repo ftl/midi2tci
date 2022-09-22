@@ -1,8 +1,11 @@
 package ctrl
 
 import (
+	"fmt"
 	"log"
 	"math"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ftl/tci/client"
@@ -16,11 +19,25 @@ func init() {
 		if err != nil {
 			return nil, 0, err
 		}
-		return NewVFOWheel(m.MidiKey(), m.TRX, vfo, tciClient), WheelController, nil
+		direction := 1
+		directionStr := m.Options["direction"]
+		if strings.ToLower(directionStr) == "reverse" {
+			direction = -1
+		}
+		stepSizeStr, ok := m.Options["step"]
+		stepSize := 10
+		if ok {
+			stepSize, err = strconv.Atoi(stepSizeStr)
+			if err != nil {
+				return nil, ButtonController, fmt.Errorf("the step size is invalid: %v", err)
+			}
+		}
+
+		return NewVFOWheel(m.MidiKey(), m.TRX, vfo, direction, stepSize, tciClient), WheelController, nil
 	}
 }
 
-func NewVFOWheel(key MidiKey, trx int, vfo client.VFO, controller VFOFrequencyController) *VFOWheel {
+func NewVFOWheel(key MidiKey, trx int, vfo client.VFO, direction int, stepSize int, controller VFOFrequencyController) *VFOWheel {
 	result := &VFOWheel{
 		key:        key,
 		trx:        trx,
@@ -33,10 +50,8 @@ func NewVFOWheel(key MidiKey, trx int, vfo client.VFO, controller VFOFrequencyCo
 
 	go func() {
 		const (
-			scanInterval  = 10 * time.Millisecond
-			fastThreshold = 3
-			slowVelocity  = 1.0
-			fastVelocity  = 10.0 // 1.8
+			scanInterval = 10 * time.Millisecond
+			velocity     = 1
 		)
 
 		defer close(result.closed)
@@ -52,29 +67,41 @@ func NewVFOWheel(key MidiKey, trx int, vfo client.VFO, controller VFOFrequencyCo
 				if !valid {
 					return
 				}
-				accumulatedTurns += turns
+				if stepSize > 0 {
+					if turns < 0 {
+						turns = -stepSize
+					} else if turns > 0 {
+						turns = stepSize
+					}
+				}
+				accumulatedTurns += (turns * direction)
 				turning = frequency > 0
 			case f := <-result.frequency:
 				if !turning {
 					frequency = f
 				}
 			case <-ticker.C:
+
 				if accumulatedTurns == 0 {
 					turning = false
-				} else if accumulatedTurns != 0 && frequency != 0 {
-					var velocity float64
-					if math.Abs(float64(accumulatedTurns)) < fastThreshold {
-						velocity = slowVelocity
-					} else {
-						velocity = fastVelocity
-					}
-					delta := int(float64(accumulatedTurns) * velocity)
-					frequency = frequency + delta
-					err := result.controller.SetVFOFrequency(result.trx, result.vfo, frequency)
-					if err != nil {
-						log.Printf("Cannot change frequency to %d: %v", result.frequency, err)
-					}
+					break
+				}
+				if frequency == 0 {
+					break
+				}
+
+				nextFrequency := int(math.Round(float64(frequency+accumulatedTurns)/float64(stepSize))) * stepSize
+				usedSteps := nextFrequency - frequency
+
+				frequency = nextFrequency
+				accumulatedTurns -= usedSteps
+				if accumulatedTurns < 0 {
 					accumulatedTurns = 0
+				}
+
+				err := result.controller.SetVFOFrequency(result.trx, result.vfo, frequency)
+				if err != nil {
+					log.Printf("Cannot change frequency to %d: %v", result.frequency, err)
 				}
 			}
 		}

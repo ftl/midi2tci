@@ -175,13 +175,8 @@ func run(_ *cobra.Command, _ []string) {
 			midiKey := ctrl.MidiKey{Channel: channel, Key: controller}
 			wheel, ok := wheels[midiKey]
 			if ok {
-				var delta int
-				if value < 0x40 {
-					delta = 1
-				} else {
-					delta = -1
-				}
-				wheel.Turned(delta)
+				delta := int(0x40) - int(value)
+				wheel.Turned(int(delta))
 			}
 			slider, ok := sliders[midiKey]
 			if ok {
@@ -262,7 +257,9 @@ func SendRawMidiSequence(w writer.ChannelWriter, sequence [][]byte) error {
 	messages := make([]midi.Message, len(sequence))
 	for i, raw := range sequence {
 		messages[i] = NewRawMessage(raw)
-		log.Printf("%s", messages[i])
+		if rootFlags.trace {
+			log.Printf("%s", messages[i])
+		}
 	}
 	return writer.WriteMessages(w, messages)
 }
