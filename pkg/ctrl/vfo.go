@@ -19,25 +19,33 @@ func init() {
 		if err != nil {
 			return nil, 0, err
 		}
-		direction := 1
+		reverseDirection := false
 		directionStr := m.Options["direction"]
 		if strings.ToLower(directionStr) == "reverse" {
-			direction = -1
+			reverseDirection = true
+		}
+		dynamicMode := false
+		modeStr := m.Options["mode"]
+		if strings.ToLower(modeStr) == "dynamic" {
+			dynamicMode = true
 		}
 		stepSizeStr, ok := m.Options["step"]
-		stepSize := 10
+		var stepSize int
 		if ok {
 			stepSize, err = strconv.Atoi(stepSizeStr)
 			if err != nil {
 				return nil, ButtonController, fmt.Errorf("the step size is invalid: %v", err)
 			}
 		}
+		if stepSize == 0 {
+			stepSize = 10
+		}
 
-		return NewVFOWheel(m.MidiKey(), m.TRX, vfo, direction, stepSize, tciClient), WheelController, nil
+		return NewVFOWheel(m.MidiKey(), m.TRX, vfo, reverseDirection, stepSize, dynamicMode, tciClient), WheelController, nil
 	}
 }
 
-func NewVFOWheel(key MidiKey, trx int, vfo client.VFO, direction int, stepSize int, controller VFOFrequencyController) *VFOWheel {
+func NewVFOWheel(key MidiKey, trx int, vfo client.VFO, reverseDirection bool, stepSize int, dynamicMode bool, controller VFOFrequencyController) *VFOWheel {
 	result := &VFOWheel{
 		key:        key,
 		trx:        trx,
@@ -47,11 +55,14 @@ func NewVFOWheel(key MidiKey, trx int, vfo client.VFO, direction int, stepSize i
 		turns:      make(chan int, 1000),
 		closed:     make(chan struct{}),
 	}
+	direction := 1
+	if reverseDirection {
+		direction = -1
+	}
 
 	go func() {
 		const (
 			scanInterval = 10 * time.Millisecond
-			velocity     = 1
 		)
 
 		defer close(result.closed)
@@ -67,7 +78,9 @@ func NewVFOWheel(key MidiKey, trx int, vfo client.VFO, direction int, stepSize i
 				if !valid {
 					return
 				}
-				if stepSize > 0 {
+				if dynamicMode {
+					turns = stepSize * turns
+				} else {
 					if turns < 0 {
 						turns = -stepSize
 					} else if turns > 0 {

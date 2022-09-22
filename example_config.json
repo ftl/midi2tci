@@ -3,8 +3,8 @@
     "port_name":   null,
     "tci_address": "localhost:40001",
     "mappings": [
-        {"type": "vfo", "channel": 1, "key": 10, "trx": 0, "vfo": "VFOA", "options": {"direction": "reverse", "step": "50"}},
-        {"type": "vfo", "channel": 2, "key": 10, "trx": 0, "vfo": "VFOB"},
+        {"type": "vfo", "channel": 1, "key": 10, "trx": 0, "vfo": "VFOA", "options": {"direction": "default", "step": "5", "mode": "dynamic"}},
+        {"type": "vfo", "channel": 2, "key": 10, "trx": 0, "vfo": "VFOB", "options": {"direction": "reverse", "step": "10", "mode": "static"}},
         {"type": "mute", "channel": 1, "key": 12},
         {"type": "volume", "channel": 0, "key": 3},
         {"type": "enable_rx", "channel": 2, "key": 12, "trx": 0, "vfo": "VFOB"},

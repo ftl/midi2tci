@@ -175,8 +175,8 @@ func run(_ *cobra.Command, _ []string) {
 			midiKey := ctrl.MidiKey{Channel: channel, Key: controller}
 			wheel, ok := wheels[midiKey]
 			if ok {
-				delta := int(0x40) - int(value)
-				wheel.Turned(int(delta))
+				delta := int(value) - int(0x40)
+				wheel.Turned(delta)
 			}
 			slider, ok := sliders[midiKey]
 			if ok {
