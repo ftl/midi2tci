@@ -34,7 +34,7 @@ func (m Mapping) MidiKey() MidiKey {
 }
 
 func (m Mapping) ValueControlOptions(defaultStepSize int) (controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, err error) {
-	str := m.Options["type"]
+	str := m.Options["control"]
 	switch strings.ToLower(str) {
 	case "button":
 		controlType = ButtonControl

@@ -15,8 +15,12 @@ func init() {
 	Factories[MuteMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		return NewMuteButton(m.MidiKey(), led, tciClient), ButtonControl, nil
 	}
-	Factories[VolumeMapping] = func(_ Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
-		return NewVolumeControl(tciClient), PotiControl, nil
+	Factories[VolumeMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
+		controlType, stepSize, reverseDirection, dynamicMode, err := m.ValueControlOptions(1)
+		if err != nil {
+			return nil, 0, err
+		}
+		return NewVolumeControl(controlType, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
 	}
 }
 
@@ -52,18 +56,17 @@ func (b *MuteButton) SetMute(muted bool) {
 	b.led.Set(b.key, !muted)
 }
 
-func NewVolumeControl(controller VolumeController) *VolumeControl {
+func NewVolumeControl(controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, controller VolumeController) *VolumeControl {
 	const tick = float64(60.0 / 127.0)
+	set := func(v int) {
+		err := controller.SetVolume(v)
+		if err != nil {
+			log.Printf("Cannot change volume: %v", err)
+		}
+	}
+	translate := func(v int) int { return -60 + int(float64(v)*tick) }
 	return &VolumeControl{
-		ValueControl: NewPoti(
-			func(v int) {
-				err := controller.SetVolume(v)
-				if err != nil {
-					log.Printf("Cannot change volume: %v", err)
-				}
-			},
-			func(v int) int { return -60 + int(float64(v)*tick) },
-		),
+		ValueControl: NewValueControl(controlType, set, translate, stepSize, reverseDirection, dynamicMode),
 	}
 }
 
