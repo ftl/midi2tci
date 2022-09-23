@@ -27,6 +27,8 @@
         {"type": "sync_vfo_frequency", "channel": 1, "key": 5, "trx": 0, "vfo": "VFOA", "options": {"src_trx": "0", "src_vfo": "VFOB"}},
         {"type": "sync_vfo_frequency", "channel": 2, "key": 5, "trx": 0, "vfo": "VFOB", "options": {"src_trx": "0", "src_vfo": "VFOA"}},
         {"type": "sync_vfo_frequency", "channel": 1, "key": 6, "trx": 0, "vfo": "VFOA", "options": {"src_trx": "0", "src_vfo": "VFOB", "offset": "-1000"}},
-        {"type": "sync_vfo_frequency", "channel": 2, "key": 6, "trx": 0, "vfo": "VFOB", "options": {"src_trx": "0", "src_vfo": "VFOA", "offset": "1000"}}
+        {"type": "sync_vfo_frequency", "channel": 2, "key": 6, "trx": 0, "vfo": "VFOB", "options": {"src_trx": "0", "src_vfo": "VFOA", "offset": "1000"}},
+        {"type": "mox", "channel": 0, "key": 35, "trx": 0},
+        {"type": "tune", "channel": 0, "key": 34, "trx": 0}
     ]
 }
