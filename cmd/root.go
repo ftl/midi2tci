@@ -135,22 +135,22 @@ func run(_ *cobra.Command, _ []string) {
 			continue
 		}
 
-		controller, controllerType, err := newController(mapping, ledController, tciClient)
+		controller, controlType, err := newController(mapping, ledController, tciClient)
 		if err != nil {
 			log.Printf("Cannot create %s: %v", mapping.Type, err)
 			continue
 		}
 
-		switch controllerType {
-		case ctrl.ButtonController:
+		switch controlType {
+		case ctrl.ButtonControl:
 			button := controller.(Button)
 			buttons[mapping.MidiKey()] = button
-		case ctrl.SliderController:
-			slider := controller.(Slider)
-			defer slider.Close()
-			sliders[mapping.MidiKey()] = slider
-		case ctrl.EncoderController:
-			encoder := controller.(Encoder)
+		case ctrl.PotiControl:
+			poti := controller.(ValueControl)
+			defer poti.Close()
+			potis[mapping.MidiKey()] = poti
+		case ctrl.EncoderControl:
+			encoder := controller.(ValueControl)
 			defer encoder.Close()
 			encoders[mapping.MidiKey()] = encoder
 		}
@@ -176,11 +176,11 @@ func run(_ *cobra.Command, _ []string) {
 			encoder, ok := encoders[midiKey]
 			if ok {
 				delta := int(value) - int(0x40)
-				encoder.Turned(delta)
+				encoder.Changed(delta)
 			}
-			slider, ok := sliders[midiKey]
+			poti, ok := potis[midiKey]
 			if ok {
-				slider.Changed(int(value))
+				poti.Changed(int(value))
 			}
 		}),
 		reader.Pitchbend(func(_ *reader.Position, channel uint8, value int16) {
@@ -189,11 +189,11 @@ func run(_ *cobra.Command, _ []string) {
 			encoder, ok := encoders[midiKey]
 			if ok {
 				delta := int(scaledValue) - int(0x40)
-				encoder.Turned(delta)
+				encoder.Changed(delta)
 			}
-			slider, ok := sliders[midiKey]
+			poti, ok := potis[midiKey]
 			if ok {
-				slider.Changed(int(scaledValue))
+				poti.Changed(int(scaledValue))
 			}
 		}),
 		reader.Each(func(_ *reader.Position, msg midi.Message) {
@@ -339,18 +339,13 @@ type Button interface {
 	Pressed()
 }
 
-var buttons map[ctrl.MidiKey]Button = make(map[ctrl.MidiKey]Button)
-
-type Encoder interface {
-	Turned(delta int)
+type ValueControl interface {
+	Changed(int)
 	Close()
 }
 
-var encoders map[ctrl.MidiKey]Encoder = make(map[ctrl.MidiKey]Encoder)
-
-type Slider interface {
-	Changed(value int)
-	Close()
-}
-
-var sliders map[ctrl.MidiKey]Slider = make(map[ctrl.MidiKey]Slider)
+var (
+	buttons  map[ctrl.MidiKey]Button       = make(map[ctrl.MidiKey]Button)
+	potis    map[ctrl.MidiKey]ValueControl = make(map[ctrl.MidiKey]ValueControl)
+	encoders map[ctrl.MidiKey]ValueControl = make(map[ctrl.MidiKey]ValueControl)
+)

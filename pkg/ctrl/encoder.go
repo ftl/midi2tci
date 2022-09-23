@@ -87,6 +87,7 @@ func (e *Encoder) start() {
 						turns = e.stepSize
 					}
 				}
+
 				accumulatedTurns += (turns * direction)
 				if accumulatedTurns == 0 {
 					pending = false
@@ -138,7 +139,7 @@ func (e *Encoder) Close() {
 	}
 }
 
-func (e *Encoder) Turned(turns int) {
+func (e *Encoder) Changed(turns int) {
 	e.turns <- e.translate(turns)
 }
 

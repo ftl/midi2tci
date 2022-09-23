@@ -14,10 +14,10 @@ const (
 )
 
 func init() {
-	Factories[EnableSplitMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControllerType, error) {
-		return NewSplitEnableButton(m.MidiKey(), m.TRX, led, tciClient), ButtonController, nil
+	Factories[EnableSplitMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
+		return NewSplitEnableButton(m.MidiKey(), m.TRX, led, tciClient), ButtonControl, nil
 	}
-	Factories[SyncVFOFrequencyMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+	Factories[SyncVFOFrequencyMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		vfo, err := AtoVFO(m.VFO)
 		if err != nil {
 			return nil, 0, err
@@ -25,20 +25,20 @@ func init() {
 
 		srcTRXStr, ok := m.Options["src_trx"]
 		if !ok {
-			return nil, ButtonController, fmt.Errorf("no source TRX configured. Use options[\"src_trx\"]=\"<source TRX>\" to configure the source TRX")
+			return nil, ButtonControl, fmt.Errorf("no source TRX configured. Use options[\"src_trx\"]=\"<source TRX>\" to configure the source TRX")
 		}
 		srcTRX, err := strconv.Atoi(srcTRXStr)
 		if err != nil {
-			return nil, ButtonController, fmt.Errorf("invalid source TRX %s: %v", srcTRXStr, err)
+			return nil, ButtonControl, fmt.Errorf("invalid source TRX %s: %v", srcTRXStr, err)
 		}
 
 		srcVFOStr, ok := m.Options["src_vfo"]
 		if !ok {
-			return nil, ButtonController, fmt.Errorf("no source VFO configured. Use options[\"src_vfo\"]=\"<source VFO>\" to configure the source VFO")
+			return nil, ButtonControl, fmt.Errorf("no source VFO configured. Use options[\"src_vfo\"]=\"<source VFO>\" to configure the source VFO")
 		}
 		srcVFO, err := AtoVFO(srcVFOStr)
 		if err != nil {
-			return nil, ButtonController, fmt.Errorf("invalid source VFO %s: %v", srcVFOStr, err)
+			return nil, ButtonControl, fmt.Errorf("invalid source VFO %s: %v", srcVFOStr, err)
 		}
 
 		offset := 0
@@ -46,11 +46,11 @@ func init() {
 		if ok {
 			offset, err = strconv.Atoi(offsetStr)
 			if err != nil {
-				return nil, ButtonController, fmt.Errorf("invalid offset %s: %v", offsetStr, err)
+				return nil, ButtonControl, fmt.Errorf("invalid offset %s: %v", offsetStr, err)
 			}
 		}
 
-		return NewSyncVFOFrequencyButton(srcTRX, srcVFO, m.TRX, vfo, offset, tciClient, tciClient), ButtonController, nil
+		return NewSyncVFOFrequencyButton(srcTRX, srcVFO, m.TRX, vfo, offset, tciClient, tciClient), ButtonControl, nil
 	}
 }
 

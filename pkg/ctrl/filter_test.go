@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFilterShape_BoundsAndSliderValue(t *testing.T) {
+func TestFilterShape_BoundsAndPotiValue(t *testing.T) {
 	tt := []struct {
 		desc        string
 		shape       filterShape

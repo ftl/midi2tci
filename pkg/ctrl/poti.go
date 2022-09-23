@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-func NewSlider(set func(int), translate func(int) int) *Slider {
-	result := &Slider{
+func NewPoti(set func(int), translate func(int) int) *Poti {
+	result := &Poti{
 		set:           set,
 		translate:     translate,
 		selectedValue: make(chan int, 1000),
@@ -18,7 +18,7 @@ func NewSlider(set func(int), translate func(int) int) *Slider {
 	return result
 }
 
-type Slider struct {
+type Poti struct {
 	set           func(int)
 	translate     func(int) int
 	activeValue   chan int
@@ -26,7 +26,7 @@ type Slider struct {
 	closed        chan struct{}
 }
 
-func (s *Slider) start() {
+func (s *Poti) start() {
 	tx := make(chan int)
 	go func() {
 		for {
@@ -93,7 +93,7 @@ func (s *Slider) start() {
 	}()
 }
 
-func (s *Slider) Close() {
+func (s *Poti) Close() {
 	select {
 	case <-s.closed:
 		return
@@ -104,10 +104,10 @@ func (s *Slider) Close() {
 	}
 }
 
-func (s *Slider) Changed(value int) {
+func (s *Poti) Changed(value int) {
 	s.selectedValue <- s.translate(value)
 }
 
-func (s *Slider) SetActiveValue(value int) {
+func (s *Poti) SetActiveValue(value int) {
 	s.activeValue <- value
 }

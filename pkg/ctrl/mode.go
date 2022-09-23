@@ -11,14 +11,14 @@ import (
 const ModeMapping MappingType = "mode"
 
 func init() {
-	Factories[ModeMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+	Factories[ModeMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		mode, ok := m.Options["mode"]
 		if !ok {
-			return nil, ButtonController, fmt.Errorf("no mode configured. Use options[\"mode\"]=\"<mode>\" to configure the mode you want to select")
+			return nil, ButtonControl, fmt.Errorf("no mode configured. Use options[\"mode\"]=\"<mode>\" to configure the mode you want to select")
 
 		}
 		mode = strings.TrimSpace(strings.ToLower(mode))
-		return NewModeButton(m.MidiKey(), m.TRX, client.Mode(mode), led, tciClient), ButtonController, nil
+		return NewModeButton(m.MidiKey(), m.TRX, client.Mode(mode), led, tciClient), ButtonControl, nil
 	}
 }
 

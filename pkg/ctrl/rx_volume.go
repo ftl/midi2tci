@@ -13,26 +13,34 @@ const (
 )
 
 func init() {
-	Factories[EnableRXMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+	Factories[EnableRXMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		vfo, err := AtoVFO(m.VFO)
 		if err != nil {
 			return nil, 0, err
 		}
-		return NewRXChannelEnableButton(m.MidiKey(), m.TRX, vfo, led, tciClient), ButtonController, nil
+		return NewRXChannelEnableButton(m.MidiKey(), m.TRX, vfo, led, tciClient), ButtonControl, nil
 	}
-	Factories[RXVolumeMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+	Factories[RXVolumeMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		vfo, err := AtoVFO(m.VFO)
 		if err != nil {
 			return nil, 0, err
 		}
-		return NewRXVolumeSlider(m.TRX, vfo, tciClient), SliderController, nil
+		controlType, stepSize, reverseDirection, dynamicMode, err := m.ValueControlOptions(1)
+		if err != nil {
+			return nil, 0, err
+		}
+		return NewRXVolumeControl(m.TRX, vfo, controlType, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
 	}
-	Factories[RXBalanceMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+	Factories[RXBalanceMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		vfo, err := AtoVFO(m.VFO)
 		if err != nil {
 			return nil, 0, err
 		}
-		return NewRXBalanceSlider(m.TRX, vfo, tciClient), SliderController, nil
+		controlType, stepSize, reverseDirection, dynamicMode, err := m.ValueControlOptions(1)
+		if err != nil {
+			return nil, 0, err
+		}
+		return NewRXBalanceControl(m.TRX, vfo, controlType, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
 	}
 }
 
@@ -75,25 +83,24 @@ func (b *RXChannelEnableButton) SetRXChannelEnable(trx int, vfo client.VFO, enab
 	b.led.Set(b.key, enabled)
 }
 
-func NewRXVolumeSlider(trx int, vfo client.VFO, controller RXVolumeController) *RXVolumeSlider {
+func NewRXVolumeControl(trx int, vfo client.VFO, controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, controller RXVolumeController) *RXVolumeControl {
 	const tick = float64(60.0 / 127.0)
-	return &RXVolumeSlider{
-		Slider: NewSlider(
-			func(v int) {
-				err := controller.SetRXVolume(trx, vfo, v)
-				if err != nil {
-					log.Printf("Cannot change RX volume: %v", err)
-				}
-			},
-			func(v int) int { return -60 + int(float64(v)*tick) },
-		),
-		trx: trx,
-		vfo: vfo,
+	set := func(v int) {
+		err := controller.SetRXVolume(trx, vfo, v)
+		if err != nil {
+			log.Printf("Cannot change RX volume: %v", err)
+		}
+	}
+	translate := func(v int) int { return -60 + int(float64(v)*tick) }
+	return &RXVolumeControl{
+		ValueControl: NewValueControl(controlType, set, translate, stepSize, reverseDirection, dynamicMode),
+		trx:          trx,
+		vfo:          vfo,
 	}
 }
 
-type RXVolumeSlider struct {
-	*Slider
+type RXVolumeControl struct {
+	ValueControl
 	trx int
 	vfo client.VFO
 }
@@ -102,32 +109,31 @@ type RXVolumeController interface {
 	SetRXVolume(trx int, vfo client.VFO, dB int) error
 }
 
-func (s *RXVolumeSlider) SetRXVolume(trx int, vfo client.VFO, volume int) {
+func (s *RXVolumeControl) SetRXVolume(trx int, vfo client.VFO, volume int) {
 	if trx != s.trx || vfo != s.vfo {
 		return
 	}
-	s.Slider.SetActiveValue(volume)
+	s.ValueControl.SetActiveValue(volume)
 }
 
-func NewRXBalanceSlider(trx int, vfo client.VFO, controller RXBalanceController) *RXBalanceSlider {
+func NewRXBalanceControl(trx int, vfo client.VFO, controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, controller RXBalanceController) *RXBalanceControl {
 	const tick = float64(80.0 / 127.0)
-	return &RXBalanceSlider{
-		Slider: NewSlider(
-			func(v int) {
-				err := controller.SetRXBalance(trx, vfo, v)
-				if err != nil {
-					log.Printf("Cannot change RX balance: %v", err)
-				}
-			},
-			func(v int) int { return -40 + int(float64(v)*tick) },
-		),
-		trx: trx,
-		vfo: vfo,
+	set := func(v int) {
+		err := controller.SetRXBalance(trx, vfo, v)
+		if err != nil {
+			log.Printf("Cannot change RX balance: %v", err)
+		}
+	}
+	translate := func(v int) int { return -40 + int(float64(v)*tick) }
+	return &RXBalanceControl{
+		ValueControl: NewValueControl(controlType, set, translate, stepSize, reverseDirection, dynamicMode),
+		trx:          trx,
+		vfo:          vfo,
 	}
 }
 
-type RXBalanceSlider struct {
-	*Slider
+type RXBalanceControl struct {
+	ValueControl
 	trx int
 	vfo client.VFO
 }
@@ -136,9 +142,9 @@ type RXBalanceController interface {
 	SetRXBalance(trx int, vfo client.VFO, dB int) error
 }
 
-func (s *RXBalanceSlider) SetRXBalance(trx int, vfo client.VFO, balance int) {
+func (s *RXBalanceControl) SetRXBalance(trx int, vfo client.VFO, balance int) {
 	if trx != s.trx || vfo != s.vfo {
 		return
 	}
-	s.Slider.SetActiveValue(balance)
+	s.ValueControl.SetActiveValue(balance)
 }

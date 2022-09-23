@@ -14,29 +14,29 @@ const (
 )
 
 func init() {
-	Factories[FilterMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+	Factories[FilterMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		minFrequencyStr, ok := m.Options["min"]
 		if !ok {
-			return nil, ButtonController, fmt.Errorf("no minimum frequency configured. Use options[\"min\"]=\"<min frequency in Hz>\" to configure the filter's minimum frequency")
+			return nil, ButtonControl, fmt.Errorf("no minimum frequency configured. Use options[\"min\"]=\"<min frequency in Hz>\" to configure the filter's minimum frequency")
 		}
 		minFrequency, err := strconv.Atoi(minFrequencyStr)
 		if err != nil {
-			return nil, ButtonController, fmt.Errorf("invalid minimum frequency %s: %v", minFrequencyStr, err)
+			return nil, ButtonControl, fmt.Errorf("invalid minimum frequency %s: %v", minFrequencyStr, err)
 		}
 
 		maxFrequencyStr, ok := m.Options["max"]
 		if !ok {
-			return nil, ButtonController, fmt.Errorf("no maximum frequency configured. Use options[\"max\"]=\"<max frequency in Hz>\" to configure the filter's maximum frequency")
+			return nil, ButtonControl, fmt.Errorf("no maximum frequency configured. Use options[\"max\"]=\"<max frequency in Hz>\" to configure the filter's maximum frequency")
 		}
 		maxFrequency, err := strconv.Atoi(maxFrequencyStr)
 		if err != nil {
-			return nil, ButtonController, fmt.Errorf("invalid maximum frequency %s: %v", maxFrequencyStr, err)
+			return nil, ButtonControl, fmt.Errorf("invalid maximum frequency %s: %v", maxFrequencyStr, err)
 		}
 
-		return NewFilterBandButton(m.MidiKey(), m.TRX, minFrequency, maxFrequency, led, tciClient), ButtonController, nil
+		return NewFilterBandButton(m.MidiKey(), m.TRX, minFrequency, maxFrequency, led, tciClient), ButtonControl, nil
 	}
-	Factories[FilterWidthMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControllerType, error) {
-		return NewFilterWidthSlider(m.TRX, tciClient), SliderController, nil
+	Factories[FilterWidthMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
+		return NewFilterWidthControl(m.TRX, tciClient), PotiControl, nil
 	}
 }
 
@@ -83,11 +83,11 @@ func (b *FilterBandButton) SetRXFilterBand(trx int, min, max int) {
 	b.led.Set(b.key, b.enabled)
 }
 
-func NewFilterWidthSlider(trx int, controller RXFilterBandController) *FilterWidthSlider {
-	result := &FilterWidthSlider{
+func NewFilterWidthControl(trx int, controller RXFilterBandController) *FilterWidthControl {
+	result := &FilterWidthControl{
 		trx: trx,
 	}
-	result.Slider = NewSlider(func(value int) {
+	result.ValueControl = NewPoti(func(value int) {
 		// set
 		min, max := result.shape.Bounds(value)
 
@@ -102,23 +102,23 @@ func NewFilterWidthSlider(trx int, controller RXFilterBandController) *FilterWid
 	return result
 }
 
-type FilterWidthSlider struct {
-	*Slider
+type FilterWidthControl struct {
+	ValueControl
 	trx int
 
 	shape   filterShape
 	enabled bool
 }
 
-func (s *FilterWidthSlider) SetMode(trx int, mode client.Mode) {
+func (s *FilterWidthControl) SetMode(trx int, mode client.Mode) {
 	if trx != s.trx {
 		return
 	}
 	s.shape, s.enabled = shapeByMode[mode]
-	// TODO s.Slider.SetEnabled(s.enabled)
+	// TODO s.ValueControl.SetEnabled(s.enabled)
 }
 
-func (s *FilterWidthSlider) SetRXFilterBand(trx int, min, max int) {
+func (s *FilterWidthControl) SetRXFilterBand(trx int, min, max int) {
 	if trx != s.trx {
 		return
 	}
@@ -130,7 +130,7 @@ func (s *FilterWidthSlider) SetRXFilterBand(trx int, min, max int) {
 	if width < 0 {
 		width *= -1
 	}
-	s.Slider.SetActiveValue(width)
+	s.ValueControl.SetActiveValue(width)
 }
 
 type filterShape struct {
@@ -142,8 +142,8 @@ type filterShape struct {
 }
 
 func (s filterShape) Width(value int) int {
-	const maxSliderValue = 127.0
-	fraction := float64(value) / maxSliderValue
+	const maxControlValue = 127.0
+	fraction := float64(value) / maxControlValue
 	space := s.maxWidth - s.minWidth
 	return s.minWidth + int(float64(space)*fraction)
 }

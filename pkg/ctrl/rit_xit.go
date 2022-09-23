@@ -14,17 +14,17 @@ const (
 )
 
 func init() {
-	Factories[EnableRITMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControllerType, error) {
-		return NewRITEnableButton(m.MidiKey(), m.TRX, led, tciClient), ButtonController, nil
+	Factories[EnableRITMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
+		return NewRITEnableButton(m.MidiKey(), m.TRX, led, tciClient), ButtonControl, nil
 	}
-	Factories[RITMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControllerType, error) {
-		return NewRITSlider(m.TRX, tciClient), SliderController, nil
+	Factories[RITMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
+		return NewRITControl(m.TRX, tciClient), PotiControl, nil
 	}
-	Factories[EnableXITMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControllerType, error) {
-		return NewXITEnableButton(m.MidiKey(), m.TRX, led, tciClient), ButtonController, nil
+	Factories[EnableXITMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
+		return NewXITEnableButton(m.MidiKey(), m.TRX, led, tciClient), ButtonControl, nil
 	}
-	Factories[XITMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControllerType, error) {
-		return NewXITSlider(m.TRX, tciClient), SliderController, nil
+	Factories[XITMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
+		return NewXITControl(m.TRX, tciClient), PotiControl, nil
 	}
 }
 
@@ -102,10 +102,10 @@ func (b *XITEnableButton) SetXITEnable(trx int, enabled bool) {
 	b.led.Set(b.key, enabled)
 }
 
-func NewRITSlider(trx int, controller RITController) *RITSlider {
+func NewRITControl(trx int, controller RITController) *RITControl {
 	const tick = float64(1000.0 / 127.0)
-	return &RITSlider{
-		Slider: NewSlider(
+	return &RITControl{
+		ValueControl: NewPoti(
 			func(v int) {
 				err := controller.SetRITOffset(trx, v)
 				if err != nil {
@@ -123,8 +123,8 @@ func NewRITSlider(trx int, controller RITController) *RITSlider {
 	}
 }
 
-type RITSlider struct {
-	*Slider
+type RITControl struct {
+	ValueControl
 	trx int
 }
 
@@ -132,17 +132,17 @@ type RITController interface {
 	SetRITOffset(trx int, offset int) error
 }
 
-func (s *RITSlider) SetRITOffset(trx int, offset int) {
+func (s *RITControl) SetRITOffset(trx int, offset int) {
 	if trx != s.trx {
 		return
 	}
-	s.Slider.SetActiveValue(offset)
+	s.ValueControl.SetActiveValue(offset)
 }
 
-func NewXITSlider(trx int, controller XITController) *XITSlider {
+func NewXITControl(trx int, controller XITController) *XITControl {
 	const tick = float64(1000.0 / 127.0)
-	return &XITSlider{
-		Slider: NewSlider(
+	return &XITControl{
+		ValueControl: NewPoti(
 			func(v int) {
 				err := controller.SetXITOffset(trx, v)
 				if err != nil {
@@ -160,8 +160,8 @@ func NewXITSlider(trx int, controller XITController) *XITSlider {
 	}
 }
 
-type XITSlider struct {
-	*Slider
+type XITControl struct {
+	ValueControl
 	trx int
 }
 
@@ -169,9 +169,9 @@ type XITController interface {
 	SetXITOffset(trx int, offset int) error
 }
 
-func (s *XITSlider) SetXITOffset(trx int, offset int) {
+func (s *XITControl) SetXITOffset(trx int, offset int) {
 	if trx != s.trx {
 		return
 	}
-	s.Slider.SetActiveValue(offset)
+	s.ValueControl.SetActiveValue(offset)
 }

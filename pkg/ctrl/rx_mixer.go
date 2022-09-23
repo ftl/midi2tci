@@ -9,8 +9,8 @@ import (
 const MixerMapping MappingType = "rx_mixer"
 
 func init() {
-	Factories[MixerMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControllerType, error) {
-		return NewRXMixer(m.TRX, tciClient), SliderController, nil
+	Factories[MixerMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
+		return NewRXMixer(m.TRX, tciClient), PotiControl, nil
 	}
 }
 
@@ -18,7 +18,7 @@ func NewRXMixer(trx int, controller RXMixController) *RXMixer {
 	const volumeTick = float64(60.0 / 127.0)
 	const balanceTick = float64(80.0 / 127.0)
 	return &RXMixer{
-		vfoAVolume: NewSlider(
+		vfoAVolume: NewPoti(
 			func(v int) {
 				err := controller.SetRXVolume(trx, client.VFOA, v)
 				if err != nil {
@@ -27,7 +27,7 @@ func NewRXMixer(trx int, controller RXMixController) *RXMixer {
 			},
 			func(v int) int { return -60 + int(float64(v)*volumeTick) },
 		),
-		vfoABalance: NewSlider(
+		vfoABalance: NewPoti(
 			func(v int) {
 				err := controller.SetRXBalance(trx, client.VFOA, v)
 				if err != nil {
@@ -36,7 +36,7 @@ func NewRXMixer(trx int, controller RXMixController) *RXMixer {
 			},
 			func(v int) int { return -40 + int(float64(v)*balanceTick) },
 		),
-		vfoBVolume: NewSlider(
+		vfoBVolume: NewPoti(
 			func(v int) {
 				err := controller.SetRXVolume(trx, client.VFOB, v)
 				if err != nil {
@@ -45,7 +45,7 @@ func NewRXMixer(trx int, controller RXMixController) *RXMixer {
 			},
 			func(v int) int { return -60 + int(float64(v)*volumeTick) },
 		),
-		vfoBBalance: NewSlider(
+		vfoBBalance: NewPoti(
 			func(v int) {
 				err := controller.SetRXBalance(trx, client.VFOB, v)
 				if err != nil {
@@ -59,10 +59,10 @@ func NewRXMixer(trx int, controller RXMixController) *RXMixer {
 }
 
 type RXMixer struct {
-	vfoAVolume  *Slider
-	vfoABalance *Slider
-	vfoBVolume  *Slider
-	vfoBBalance *Slider
+	vfoAVolume  ValueControl
+	vfoABalance ValueControl
+	vfoBVolume  ValueControl
+	vfoBBalance ValueControl
 	trx         int
 }
 

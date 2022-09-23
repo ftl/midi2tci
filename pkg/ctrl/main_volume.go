@@ -12,11 +12,11 @@ const (
 )
 
 func init() {
-	Factories[MuteMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControllerType, error) {
-		return NewMuteButton(m.MidiKey(), led, tciClient), ButtonController, nil
+	Factories[MuteMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
+		return NewMuteButton(m.MidiKey(), led, tciClient), ButtonControl, nil
 	}
-	Factories[VolumeMapping] = func(_ Mapping, _ LED, tciClient *client.Client) (interface{}, ControllerType, error) {
-		return NewVolumeSlider(tciClient), SliderController, nil
+	Factories[VolumeMapping] = func(_ Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
+		return NewVolumeControl(tciClient), PotiControl, nil
 	}
 }
 
@@ -52,10 +52,10 @@ func (b *MuteButton) SetMute(muted bool) {
 	b.led.Set(b.key, !muted)
 }
 
-func NewVolumeSlider(controller VolumeController) *VolumeSlider {
+func NewVolumeControl(controller VolumeController) *VolumeControl {
 	const tick = float64(60.0 / 127.0)
-	return &VolumeSlider{
-		Slider: NewSlider(
+	return &VolumeControl{
+		ValueControl: NewPoti(
 			func(v int) {
 				err := controller.SetVolume(v)
 				if err != nil {
@@ -67,14 +67,14 @@ func NewVolumeSlider(controller VolumeController) *VolumeSlider {
 	}
 }
 
-type VolumeSlider struct {
-	*Slider
+type VolumeControl struct {
+	ValueControl
 }
 
 type VolumeController interface {
 	SetVolume(dB int) error
 }
 
-func (s *VolumeSlider) SetVolume(volume int) {
-	s.Slider.SetActiveValue(volume)
+func (s *VolumeControl) SetVolume(volume int) {
+	s.ValueControl.SetActiveValue(volume)
 }

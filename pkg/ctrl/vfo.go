@@ -12,7 +12,7 @@ import (
 const VFOMapping MappingType = "vfo"
 
 func init() {
-	Factories[VFOMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControllerType, error) {
+	Factories[VFOMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		vfo, err := AtoVFO(m.VFO)
 		if err != nil {
 			return nil, 0, err
@@ -32,18 +32,18 @@ func init() {
 		if ok {
 			stepSize, err = strconv.Atoi(stepSizeStr)
 			if err != nil {
-				return nil, ButtonController, fmt.Errorf("the step size is invalid: %v", err)
+				return nil, ButtonControl, fmt.Errorf("the step size is invalid: %v", err)
 			}
 		}
 		if stepSize == 0 {
 			stepSize = 10
 		}
 
-		return NewVFOEncoder(m.TRX, vfo, stepSize, reverseDirection, dynamicMode, tciClient), EncoderController, nil
+		return NewVFOEncoder(m.TRX, vfo, stepSize, reverseDirection, dynamicMode, tciClient), EncoderControl, nil
 	}
 }
 
-func NewVFOEncoder(trx int, vfo client.VFO, stepSize int, reverseDirection bool, dynamicMode bool, controller VFOFrequencyController) *VFOEncoder2 {
+func NewVFOEncoder(trx int, vfo client.VFO, stepSize int, reverseDirection bool, dynamicMode bool, controller VFOFrequencyController) *VFOEncoder {
 	return &VFOEncoder{
 		Encoder: NewEncoder(
 			func(frequency int) {
