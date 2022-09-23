@@ -18,13 +18,21 @@ func init() {
 		return NewRITEnableButton(m.MidiKey(), m.TRX, led, tciClient), ButtonControl, nil
 	}
 	Factories[RITMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
-		return NewRITControl(m.TRX, tciClient), PotiControl, nil
+		controlType, stepSize, reverseDirection, dynamicMode, err := m.ValueControlOptions(1)
+		if err != nil {
+			return nil, 0, err
+		}
+		return NewRITControl(m.TRX, controlType, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
 	}
 	Factories[EnableXITMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		return NewXITEnableButton(m.MidiKey(), m.TRX, led, tciClient), ButtonControl, nil
 	}
 	Factories[XITMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
-		return NewXITControl(m.TRX, tciClient), PotiControl, nil
+		controlType, stepSize, reverseDirection, dynamicMode, err := m.ValueControlOptions(1)
+		if err != nil {
+			return nil, 0, err
+		}
+		return NewXITControl(m.TRX, controlType, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
 	}
 }
 
@@ -102,24 +110,23 @@ func (b *XITEnableButton) SetXITEnable(trx int, enabled bool) {
 	b.led.Set(b.key, enabled)
 }
 
-func NewRITControl(trx int, controller RITController) *RITControl {
+func NewRITControl(trx int, controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, controller RITController) *RITControl {
 	const tick = float64(1000.0 / 127.0)
+	set := func(v int) {
+		err := controller.SetRITOffset(trx, v)
+		if err != nil {
+			log.Printf("Cannot change RIT offset: %v", err)
+		}
+	}
+	translate := func(v int) int {
+		if v == 0x40 {
+			return 0
+		}
+		return -500 + int(float64(v)*tick)
+	}
 	return &RITControl{
-		ValueControl: NewPoti(
-			func(v int) {
-				err := controller.SetRITOffset(trx, v)
-				if err != nil {
-					log.Printf("Cannot change RIT offset: %v", err)
-				}
-			},
-			func(v int) int {
-				if v == 0x40 {
-					return 0
-				}
-				return -500 + int(float64(v)*tick)
-			},
-		),
-		trx: trx,
+		ValueControl: NewValueControl(controlType, set, translate, stepSize, reverseDirection, dynamicMode),
+		trx:          trx,
 	}
 }
 
@@ -139,24 +146,23 @@ func (s *RITControl) SetRITOffset(trx int, offset int) {
 	s.ValueControl.SetActiveValue(offset)
 }
 
-func NewXITControl(trx int, controller XITController) *XITControl {
+func NewXITControl(trx int, controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, controller XITController) *XITControl {
 	const tick = float64(1000.0 / 127.0)
+	set := func(v int) {
+		err := controller.SetXITOffset(trx, v)
+		if err != nil {
+			log.Printf("Cannot change XIT offset: %v", err)
+		}
+	}
+	translate := func(v int) int {
+		if v == 0x40 {
+			return 0
+		}
+		return -500 + int(float64(v)*tick)
+	}
 	return &XITControl{
-		ValueControl: NewPoti(
-			func(v int) {
-				err := controller.SetXITOffset(trx, v)
-				if err != nil {
-					log.Printf("Cannot change XIT offset: %v", err)
-				}
-			},
-			func(v int) int {
-				if v == 0x40 {
-					return 0
-				}
-				return -500 + int(float64(v)*tick)
-			},
-		),
-		trx: trx,
+		ValueControl: NewValueControl(controlType, set, translate, stepSize, reverseDirection, dynamicMode),
+		trx:          trx,
 	}
 }
 
