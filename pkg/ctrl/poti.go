@@ -55,6 +55,7 @@ func (s *Poti) start() {
 					return
 				}
 				activeValue = value
+				// log.Printf("poti active value: %d", activeValue)
 				if !pending {
 					selectedValue = activeValue
 				}
@@ -63,6 +64,7 @@ func (s *Poti) start() {
 					return
 				}
 				selectedValue = value
+				// log.Printf("poti selectedValue: %d", selectedValue)
 
 				if activeValue == selectedValue {
 					continue

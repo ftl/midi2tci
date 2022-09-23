@@ -166,13 +166,13 @@ func run(_ *cobra.Command, _ []string) {
 	rd := reader.New(
 		reader.NoLogger(),
 		reader.NoteOn(func(_ *reader.Position, channel, key, velocity uint8) {
-			button, ok := buttons[ctrl.MidiKey{Channel: channel, Key: key}]
+			button, ok := buttons[ctrl.MidiKey{Channel: channel, Key: int8(key)}]
 			if ok {
 				button.Pressed()
 			}
 		}),
 		reader.ControlChange(func(_ *reader.Position, channel, controller, value uint8) {
-			midiKey := ctrl.MidiKey{Channel: channel, Key: controller}
+			midiKey := ctrl.MidiKey{Channel: channel, Key: int8(controller)}
 			encoder, ok := encoders[midiKey]
 			if ok {
 				delta := int(value) - int(0x40)
@@ -185,7 +185,7 @@ func run(_ *cobra.Command, _ []string) {
 		}),
 		reader.Pitchbend(func(_ *reader.Position, channel uint8, value int16) {
 			scaledValue := uint8((value + 0x2000) >> 7)
-			midiKey := ctrl.MidiKey{Channel: channel, Key: 0}
+			midiKey := ctrl.MidiKey{Channel: channel, Key: -1}
 			encoder, ok := encoders[midiKey]
 			if ok {
 				delta := int(scaledValue) - int(0x40)
@@ -328,9 +328,9 @@ func (c *LEDController) Set(key ctrl.MidiKey, on bool) {
 	c.commands <- func(w writer.ChannelWriter) {
 		w.SetChannel(key.Channel)
 		if on {
-			writer.NoteOn(w, key.Key, 0x7f)
+			writer.NoteOn(w, uint8(key.Key), 0x7f)
 		} else {
-			writer.NoteOff(w, key.Key)
+			writer.NoteOff(w, uint8(key.Key))
 		}
 	}
 }

@@ -69,8 +69,8 @@ func (e *Encoder) start() {
 				if !valid {
 					return
 				}
-				// log.Printf("active value: %d", activeValue)
 				activeValue = value
+				// log.Printf("encoder active value: %d", activeValue)
 				if !pending {
 					selectedValue = activeValue
 				}

@@ -56,7 +56,7 @@ The example shows that the control I want to use for VFOA has the setting channe
 2021/08/08 09:59:59 rx: channel.Pitchbend{channel:0x0, value:4304, absValue:0x30d0}
 ```
 
-This example shows a control that send Pitchbend events over MIDI. In this case the key parameter of the mapping needs to be 0 (key=0).
+This example shows a control that send Pitchbend events over MIDI. In this case the key parameter of the mapping needs to be -1 (key=-1).
 
 ## License
 

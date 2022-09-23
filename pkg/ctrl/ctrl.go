@@ -10,7 +10,7 @@ import (
 
 type MidiKey struct {
 	Channel byte
-	Key     byte
+	Key     int8
 }
 
 type LED interface {
@@ -20,7 +20,7 @@ type LED interface {
 type Mapping struct {
 	Type    MappingType       `json:"type"`
 	Channel byte              `json:"channel"`
-	Key     byte              `json:"key"`
+	Key     int8              `json:"key"`
 	TRX     int               `json:"trx"`
 	VFO     string            `json:"vfo"`
 	Options map[string]string `json:"options"`
@@ -36,14 +36,12 @@ func (m Mapping) MidiKey() MidiKey {
 func (m Mapping) ValueControlOptions(defaultStepSize int) (controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, err error) {
 	str := m.Options["control"]
 	switch strings.ToLower(str) {
-	case "button":
-		controlType = ButtonControl
 	case "poti":
 		controlType = PotiControl
 	case "encoder":
 		controlType = EncoderControl
 	default:
-		controlType = UnknownControl
+		controlType = PotiControl
 	}
 
 	str, ok := m.Options["step"]
