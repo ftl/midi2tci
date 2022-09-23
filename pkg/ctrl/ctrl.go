@@ -33,20 +33,6 @@ func (m Mapping) MidiKey() MidiKey {
 	}
 }
 
-func (m Mapping) ControlType() ControlType {
-	str := m.Options["type"]
-	switch strings.ToLower(str) {
-	case "button":
-		return ButtonControl
-	case "poti":
-		return PotiControl
-	case "encoder":
-		return EncoderControl
-	default:
-		return UnknownControl
-	}
-}
-
 func (m Mapping) ValueControlOptions(defaultStepSize int) (controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, err error) {
 	str := m.Options["type"]
 	switch strings.ToLower(str) {

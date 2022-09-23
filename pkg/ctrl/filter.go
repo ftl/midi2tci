@@ -36,7 +36,12 @@ func init() {
 		return NewFilterBandButton(m.MidiKey(), m.TRX, minFrequency, maxFrequency, led, tciClient), ButtonControl, nil
 	}
 	Factories[FilterWidthMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
-		return NewFilterWidthControl(m.TRX, tciClient), PotiControl, nil
+		controlType, stepSize, reverseDirection, dynamicMode, err := m.ValueControlOptions(1)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		return NewFilterWidthControl(m.TRX, controlType, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
 	}
 }
 
@@ -83,22 +88,20 @@ func (b *FilterBandButton) SetRXFilterBand(trx int, min, max int) {
 	b.led.Set(b.key, b.enabled)
 }
 
-func NewFilterWidthControl(trx int, controller RXFilterBandController) *FilterWidthControl {
+func NewFilterWidthControl(trx int, controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, controller RXFilterBandController) *FilterWidthControl {
 	result := &FilterWidthControl{
 		trx: trx,
 	}
-	result.ValueControl = NewPoti(func(value int) {
-		// set
+	set := func(value int) {
 		min, max := result.shape.Bounds(value)
 
 		err := controller.SetRXFilterBand(trx, min, max)
 		if err != nil {
 			log.Printf("Cannot send filter width %d = %d,%d: %v", value, min, max, err)
 		}
-	}, func(value int) int {
-		// translate
-		return result.shape.Width(value)
-	})
+	}
+	translate := func(value int) int { return result.shape.Width(value) }
+	result.ValueControl = NewValueControl(controlType, set, translate, stepSize, reverseDirection, dynamicMode)
 	return result
 }
 

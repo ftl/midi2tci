@@ -69,6 +69,7 @@ func (e *Encoder) start() {
 				if !valid {
 					return
 				}
+				// log.Printf("active value: %d", activeValue)
 				activeValue = value
 				if !pending {
 					selectedValue = activeValue
@@ -77,6 +78,7 @@ func (e *Encoder) start() {
 				if !valid {
 					return
 				}
+				// log.Printf("1 turns: %d", turns)
 
 				if e.dynamicMode {
 					turns = e.stepSize * turns
@@ -87,6 +89,7 @@ func (e *Encoder) start() {
 						turns = e.stepSize
 					}
 				}
+				// log.Printf("2 turns: %d", turns)
 
 				accumulatedTurns += (turns * direction)
 				if accumulatedTurns == 0 {
