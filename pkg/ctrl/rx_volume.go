@@ -84,16 +84,16 @@ func (b *RXChannelEnableButton) SetRXChannelEnable(trx int, vfo client.VFO, enab
 }
 
 func NewRXVolumeControl(trx int, vfo client.VFO, controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, controller RXVolumeController) *RXVolumeControl {
-	const tick = float64(60.0 / 127.0)
 	set := func(v int) {
 		err := controller.SetRXVolume(trx, vfo, v)
 		if err != nil {
 			log.Printf("Cannot change RX volume: %v", err)
 		}
 	}
-	translate := func(v int) int { return -60 + int(float64(v)*tick) }
+	valueRange := StaticRange{-60, 0}
+
 	return &RXVolumeControl{
-		ValueControl: NewValueControl(controlType, set, translate, stepSize, reverseDirection, dynamicMode),
+		ValueControl: NewValueControl(controlType, set, valueRange, stepSize, reverseDirection, dynamicMode),
 		trx:          trx,
 		vfo:          vfo,
 	}
@@ -117,16 +117,16 @@ func (s *RXVolumeControl) SetRXVolume(trx int, vfo client.VFO, volume int) {
 }
 
 func NewRXBalanceControl(trx int, vfo client.VFO, controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, controller RXBalanceController) *RXBalanceControl {
-	const tick = float64(80.0 / 127.0)
 	set := func(v int) {
 		err := controller.SetRXBalance(trx, vfo, v)
 		if err != nil {
 			log.Printf("Cannot change RX balance: %v", err)
 		}
 	}
-	translate := func(v int) int { return -40 + int(float64(v)*tick) }
+	valueRange := StaticRange{-40, 40}
+
 	return &RXBalanceControl{
-		ValueControl: NewValueControl(controlType, set, translate, stepSize, reverseDirection, dynamicMode),
+		ValueControl: NewValueControl(controlType, set, valueRange, stepSize, reverseDirection, dynamicMode),
 		trx:          trx,
 		vfo:          vfo,
 	}

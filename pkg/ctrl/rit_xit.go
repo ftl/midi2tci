@@ -111,21 +111,15 @@ func (b *XITEnableButton) SetXITEnable(trx int, enabled bool) {
 }
 
 func NewRITControl(trx int, controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, controller RITController) *RITControl {
-	const tick = float64(1000.0 / 127.0)
 	set := func(v int) {
 		err := controller.SetRITOffset(trx, v)
 		if err != nil {
 			log.Printf("Cannot change RIT offset: %v", err)
 		}
 	}
-	translate := func(v int) int {
-		if v == 0x40 {
-			return 0
-		}
-		return -500 + int(float64(v)*tick)
-	}
+	valueRange := StaticRange{-500, 500}
 	return &RITControl{
-		ValueControl: NewValueControl(controlType, set, translate, stepSize, reverseDirection, dynamicMode),
+		ValueControl: NewValueControl(controlType, set, valueRange, stepSize, reverseDirection, dynamicMode),
 		trx:          trx,
 	}
 }
@@ -147,21 +141,15 @@ func (s *RITControl) SetRITOffset(trx int, offset int) {
 }
 
 func NewXITControl(trx int, controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, controller XITController) *XITControl {
-	const tick = float64(1000.0 / 127.0)
 	set := func(v int) {
 		err := controller.SetXITOffset(trx, v)
 		if err != nil {
 			log.Printf("Cannot change XIT offset: %v", err)
 		}
 	}
-	translate := func(v int) int {
-		if v == 0x40 {
-			return 0
-		}
-		return -500 + int(float64(v)*tick)
-	}
+	valueRange := StaticRange{-500, 500}
 	return &XITControl{
-		ValueControl: NewValueControl(controlType, set, translate, stepSize, reverseDirection, dynamicMode),
+		ValueControl: NewValueControl(controlType, set, valueRange, stepSize, reverseDirection, dynamicMode),
 		trx:          trx,
 	}
 }

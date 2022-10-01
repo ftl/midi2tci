@@ -78,21 +78,40 @@ const (
 	EncoderControl
 )
 
+type ValueRange interface {
+	Min() int
+	Max() int
+	Infinite() bool
+}
+
+type StaticRange struct {
+	min int
+	max int
+}
+
+func (r StaticRange) Min() int       { return r.min }
+func (r StaticRange) Max() int       { return r.max }
+func (r StaticRange) Infinite() bool { return r.min == r.max }
+
+type InfiniteRange struct{}
+
+func (r InfiniteRange) Min() int       { return 0 }
+func (r InfiniteRange) Max() int       { return 0 }
+func (r InfiniteRange) Infinite() bool { return true }
+
 type ValueControl interface {
 	Changed(int)
 	SetActiveValue(value int)
 	Close()
 }
 
-func NewValueControl(controlType ControlType, set func(int), translate func(int) int, stepSize int, reverseDirection bool, dynamicMode bool) ValueControl {
+func NewValueControl(controlType ControlType, set func(int), valueRange ValueRange, stepSize int, reverseDirection bool, dynamicMode bool) ValueControl {
 	if controlType == EncoderControl {
-		return NewEncoder(set, identity, stepSize, reverseDirection, dynamicMode)
+		return NewEncoder(set, valueRange, stepSize, reverseDirection, dynamicMode)
 	} else {
-		return NewPoti(set, translate)
+		return NewPoti(set, valueRange)
 	}
 }
-
-func identity(i int) int { return i }
 
 type ControlFactory func(Mapping, LED, *client.Client) (any, ControlType, error)
 

@@ -100,8 +100,8 @@ func NewFilterWidthControl(trx int, controlType ControlType, stepSize int, rever
 			log.Printf("Cannot send filter width %d = %d,%d: %v", value, min, max, err)
 		}
 	}
-	translate := func(value int) int { return result.shape.Width(value) }
-	result.ValueControl = NewValueControl(controlType, set, translate, stepSize, reverseDirection, dynamicMode)
+
+	result.ValueControl = NewValueControl(controlType, set, result, stepSize, reverseDirection, dynamicMode)
 	return result
 }
 
@@ -112,6 +112,10 @@ type FilterWidthControl struct {
 	shape   filterShape
 	enabled bool
 }
+
+func (s *FilterWidthControl) Min() int       { return s.shape.Min() }
+func (s *FilterWidthControl) Max() int       { return s.shape.Max() }
+func (s *FilterWidthControl) Infinite() bool { return s.shape.Infinite() }
 
 func (s *FilterWidthControl) SetMode(trx int, mode client.Mode) {
 	if trx != s.trx {
@@ -143,6 +147,10 @@ type filterShape struct {
 	leftFraction   float64
 	rightFraction  float64
 }
+
+func (s filterShape) Min() int       { return s.minWidth }
+func (s filterShape) Max() int       { return s.maxWidth }
+func (s filterShape) Infinite() bool { return false }
 
 func (s filterShape) Width(value int) int {
 	const maxControlValue = 127.0

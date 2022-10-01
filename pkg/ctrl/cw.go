@@ -84,16 +84,16 @@ func (b *StopCWButton) Pressed() {
 }
 
 func NewCWSpeedControl(controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, controller CWController) *CWSpeedControl {
-	const tick = float64(45.0 / 127.0)
 	set := func(v int) {
 		err := controller.SetCWMacrosSpeed(v)
 		if err != nil {
 			log.Printf("Cannot change RX balance: %v", err)
 		}
 	}
-	translate := func(v int) int { return 5 + int(float64(v)*tick) }
+	valueRange := StaticRange{5, 50}
+
 	return &CWSpeedControl{
-		ValueControl: NewValueControl(controlType, set, translate, stepSize, reverseDirection, dynamicMode),
+		ValueControl: NewValueControl(controlType, set, valueRange, stepSize, reverseDirection, dynamicMode),
 	}
 }
 

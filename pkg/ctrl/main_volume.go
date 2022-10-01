@@ -57,16 +57,16 @@ func (b *MuteButton) SetMute(muted bool) {
 }
 
 func NewVolumeControl(controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, controller VolumeController) *VolumeControl {
-	const tick = float64(60.0 / 127.0)
 	set := func(v int) {
 		err := controller.SetVolume(v)
 		if err != nil {
 			log.Printf("Cannot change volume: %v", err)
 		}
 	}
-	translate := func(v int) int { return -60 + int(float64(v)*tick) }
+	valueRange := StaticRange{-60, 0}
+
 	return &VolumeControl{
-		ValueControl: NewValueControl(controlType, set, translate, stepSize, reverseDirection, dynamicMode),
+		ValueControl: NewValueControl(controlType, set, valueRange, stepSize, reverseDirection, dynamicMode),
 	}
 }
 

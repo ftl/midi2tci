@@ -15,8 +15,8 @@ func init() {
 }
 
 func NewRXMixer(trx int, controller RXMixController) *RXMixer {
-	const volumeTick = float64(60.0 / 127.0)
-	const balanceTick = float64(80.0 / 127.0)
+	volumeRange := StaticRange{-60, 0}
+	balanceRange := StaticRange{-40, 40}
 	return &RXMixer{
 		vfoAVolume: NewPoti(
 			func(v int) {
@@ -25,7 +25,7 @@ func NewRXMixer(trx int, controller RXMixController) *RXMixer {
 					log.Printf("Cannot change RX volume: %v", err)
 				}
 			},
-			func(v int) int { return -60 + int(float64(v)*volumeTick) },
+			volumeRange,
 		),
 		vfoABalance: NewPoti(
 			func(v int) {
@@ -34,7 +34,7 @@ func NewRXMixer(trx int, controller RXMixController) *RXMixer {
 					log.Printf("Cannot change RX balance: %v", err)
 				}
 			},
-			func(v int) int { return -40 + int(float64(v)*balanceTick) },
+			balanceRange,
 		),
 		vfoBVolume: NewPoti(
 			func(v int) {
@@ -43,7 +43,7 @@ func NewRXMixer(trx int, controller RXMixController) *RXMixer {
 					log.Printf("Cannot change RX volume: %v", err)
 				}
 			},
-			func(v int) int { return -60 + int(float64(v)*volumeTick) },
+			volumeRange,
 		),
 		vfoBBalance: NewPoti(
 			func(v int) {
@@ -52,7 +52,7 @@ func NewRXMixer(trx int, controller RXMixController) *RXMixer {
 					log.Printf("Cannot change RX balance: %v", err)
 				}
 			},
-			func(v int) int { return -40 + int(float64(v)*balanceTick) },
+			balanceRange,
 		),
 		trx: trx,
 	}

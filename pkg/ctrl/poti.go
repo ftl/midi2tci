@@ -4,10 +4,10 @@ import (
 	"time"
 )
 
-func NewPoti(set func(int), translate func(int) int) *Poti {
+func NewPoti(set func(int), valueRange ValueRange) *Poti {
 	result := &Poti{
 		set:           set,
-		translate:     translate,
+		valueRange:    valueRange,
 		selectedValue: make(chan int, 1000),
 		activeValue:   make(chan int, 1000),
 		closed:        make(chan struct{}),
@@ -20,7 +20,7 @@ func NewPoti(set func(int), translate func(int) int) *Poti {
 
 type Poti struct {
 	set           func(int)
-	translate     func(int) int
+	valueRange    ValueRange
 	activeValue   chan int
 	selectedValue chan int
 	closed        chan struct{}
@@ -106,10 +106,22 @@ func (s *Poti) Close() {
 	}
 }
 
+func (s *Poti) tick() float64 {
+	return float64(s.valueRange.Max()-s.valueRange.Min()) / 127.0
+}
+
+func (s *Poti) translate(value int) int {
+	if s.valueRange.Infinite() {
+		return value
+	}
+	return s.valueRange.Min() + int(float64(value)*s.tick())
+}
+
 func (s *Poti) Changed(value int) {
 	s.selectedValue <- s.translate(value)
 }
 
 func (s *Poti) SetActiveValue(value int) {
 	s.activeValue <- value
+	// TODO indicate the re-translated value
 }

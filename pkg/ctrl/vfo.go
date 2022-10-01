@@ -52,7 +52,7 @@ func NewVFOEncoder(trx int, vfo client.VFO, stepSize int, reverseDirection bool,
 					log.Printf("Cannot change frequency to %d: %v", frequency, err)
 				}
 			},
-			func(frequency int) int { return frequency },
+			InfiniteRange{},
 			stepSize,
 			reverseDirection,
 			dynamicMode,

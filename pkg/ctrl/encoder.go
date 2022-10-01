@@ -5,10 +5,10 @@ import (
 	"time"
 )
 
-func NewEncoder(set func(int), translate func(int) int, stepSize int, reverseDirection bool, dynamicMode bool) *Encoder {
+func NewEncoder(set func(int), valueRange ValueRange, stepSize int, reverseDirection bool, dynamicMode bool) *Encoder {
 	result := &Encoder{
 		set:         set,
-		translate:   translate,
+		valueRange:  valueRange,
 		activeValue: make(chan int, 1000),
 		turns:       make(chan int, 1000),
 		closed:      make(chan struct{}),
@@ -25,7 +25,7 @@ func NewEncoder(set func(int), translate func(int) int, stepSize int, reverseDir
 
 type Encoder struct {
 	set         func(int)
-	translate   func(int) int
+	valueRange  ValueRange
 	activeValue chan int
 	turns       chan int
 	closed      chan struct{}
@@ -143,9 +143,10 @@ func (e *Encoder) Close() {
 }
 
 func (e *Encoder) Changed(turns int) {
-	e.turns <- e.translate(turns)
+	e.turns <- turns
 }
 
 func (e *Encoder) SetActiveValue(value int) {
 	e.activeValue <- value
+	// TODO indicate the re-translated value
 }
