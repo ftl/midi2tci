@@ -1,4 +1,4 @@
-## DJControl Starlight
+# DJControl Starlight
 
 Here is some information about my specific MIDI controller that I had trouble to find.
 
@@ -28,3 +28,7 @@ When the "white" bit is on, the other bits are ignored.
 * https://github.com/mixxxdj/mixxx/wiki/Hercules%20DJ%20Control%20Starlight
 * https://mixxx.discourse.group/t/hercules-djcontrol-starlight/17833
 * https://mixxx.discourse.group/uploads/short-url/4D6lh9SlkjOzmmec8YZSe8wIlhX.js
+
+# Behringer CMD PL-1
+
+Chris, W2PA provides some valuable insights to the Behringer CMD PL-1 on [his blog](http://w2pa.net/SDR/category/midi-controllers/).
