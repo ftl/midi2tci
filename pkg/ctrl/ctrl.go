@@ -2,6 +2,7 @@ package ctrl
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -98,6 +99,31 @@ type InfiniteRange struct{}
 func (r InfiniteRange) Min() int       { return 0 }
 func (r InfiniteRange) Max() int       { return 0 }
 func (r InfiniteRange) Infinite() bool { return true }
+
+func RangeTick(r ValueRange) float64 {
+	return float64(r.Max()-r.Min()+1) / 128.0
+}
+
+func Translate(r ValueRange, value uint8) int {
+	if r.Infinite() {
+		return int(value)
+	}
+	return r.Min() + int(float64(value)*RangeTick(r))
+}
+
+func Project(r ValueRange, value int) uint8 {
+	if r.Infinite() {
+		return uint8(value)
+	}
+	if value < r.Min() {
+		return 0
+	}
+	if value > r.Max() {
+		return 0x7f
+	}
+	p := uint8(math.Ceil(float64(value-r.Min()) / RangeTick(r)))
+	return p
+}
 
 type ValueControl interface {
 	Changed(int)

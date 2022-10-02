@@ -106,19 +106,8 @@ func (s *Poti) Close() {
 	}
 }
 
-func (s *Poti) tick() float64 {
-	return float64(s.valueRange.Max()-s.valueRange.Min()) / 127.0
-}
-
-func (s *Poti) translate(value int) int {
-	if s.valueRange.Infinite() {
-		return value
-	}
-	return s.valueRange.Min() + int(float64(value)*s.tick())
-}
-
 func (s *Poti) Changed(value int) {
-	s.selectedValue <- s.translate(value)
+	s.selectedValue <- Translate(s.valueRange, uint8(value))
 }
 
 func (s *Poti) SetActiveValue(value int) {
