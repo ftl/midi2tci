@@ -84,14 +84,14 @@ func (e *Encoder) start() {
 				}
 				// log.Printf("1 turns: %d", turns)
 
+				amount := e.stepSize
 				if e.dynamicMode {
-					turns = e.stepSize * turns
-				} else {
-					if turns < 0 {
-						turns = -e.stepSize
-					} else if turns > 0 {
-						turns = e.stepSize
-					}
+					amount += (e.stepSize * int(math.Abs(float64(turns))-1) * 5)
+				}
+				if turns < 0 {
+					turns = -amount
+				} else if turns > 0 {
+					turns = amount
 				}
 				// log.Printf("2 turns: %d", turns)
 
