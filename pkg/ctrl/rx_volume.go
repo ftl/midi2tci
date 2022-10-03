@@ -20,7 +20,7 @@ func init() {
 		}
 		return NewRXChannelEnableButton(m.MidiKey(), m.TRX, vfo, led, tciClient), ButtonControl, nil
 	}
-	Factories[RXVolumeMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
+	Factories[RXVolumeMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		vfo, err := AtoVFO(m.VFO)
 		if err != nil {
 			return nil, 0, err
@@ -29,9 +29,9 @@ func init() {
 		if err != nil {
 			return nil, 0, err
 		}
-		return NewRXVolumeControl(m.TRX, vfo, controlType, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
+		return NewRXVolumeControl(m.MidiKey(), m.TRX, vfo, controlType, led, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
 	}
-	Factories[RXBalanceMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
+	Factories[RXBalanceMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		vfo, err := AtoVFO(m.VFO)
 		if err != nil {
 			return nil, 0, err
@@ -40,7 +40,7 @@ func init() {
 		if err != nil {
 			return nil, 0, err
 		}
-		return NewRXBalanceControl(m.TRX, vfo, controlType, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
+		return NewRXBalanceControl(m.MidiKey(), m.TRX, vfo, controlType, led, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
 	}
 }
 
@@ -80,10 +80,10 @@ func (b *RXChannelEnableButton) SetRXChannelEnable(trx int, vfo client.VFO, enab
 		return
 	}
 	b.enabled = enabled
-	b.led.Set(b.key, enabled)
+	b.led.SetOn(b.key, enabled)
 }
 
-func NewRXVolumeControl(trx int, vfo client.VFO, controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, controller RXVolumeController) *RXVolumeControl {
+func NewRXVolumeControl(key MidiKey, trx int, vfo client.VFO, controlType ControlType, led LED, stepSize int, reverseDirection bool, dynamicMode bool, controller RXVolumeController) *RXVolumeControl {
 	set := func(v int) {
 		err := controller.SetRXVolume(trx, vfo, v)
 		if err != nil {
@@ -93,7 +93,7 @@ func NewRXVolumeControl(trx int, vfo client.VFO, controlType ControlType, stepSi
 	valueRange := StaticRange{-60, 0}
 
 	return &RXVolumeControl{
-		ValueControl: NewValueControl(controlType, set, valueRange, stepSize, reverseDirection, dynamicMode),
+		ValueControl: NewValueControl(key, controlType, set, valueRange, led, stepSize, reverseDirection, dynamicMode),
 		trx:          trx,
 		vfo:          vfo,
 	}
@@ -116,7 +116,7 @@ func (s *RXVolumeControl) SetRXVolume(trx int, vfo client.VFO, volume int) {
 	s.ValueControl.SetActiveValue(volume)
 }
 
-func NewRXBalanceControl(trx int, vfo client.VFO, controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, controller RXBalanceController) *RXBalanceControl {
+func NewRXBalanceControl(key MidiKey, trx int, vfo client.VFO, controlType ControlType, led LED, stepSize int, reverseDirection bool, dynamicMode bool, controller RXBalanceController) *RXBalanceControl {
 	set := func(v int) {
 		err := controller.SetRXBalance(trx, vfo, v)
 		if err != nil {
@@ -126,7 +126,7 @@ func NewRXBalanceControl(trx int, vfo client.VFO, controlType ControlType, stepS
 	valueRange := StaticRange{-40, 40}
 
 	return &RXBalanceControl{
-		ValueControl: NewValueControl(controlType, set, valueRange, stepSize, reverseDirection, dynamicMode),
+		ValueControl: NewValueControl(key, controlType, set, valueRange, led, stepSize, reverseDirection, dynamicMode),
 		trx:          trx,
 		vfo:          vfo,
 	}

@@ -19,6 +19,7 @@ func NewRXMixer(trx int, controller RXMixController) *RXMixer {
 	balanceRange := StaticRange{-40, 40}
 	return &RXMixer{
 		vfoAVolume: NewPoti(
+			MidiKey{},
 			func(v int) {
 				err := controller.SetRXVolume(trx, client.VFOA, v)
 				if err != nil {
@@ -26,8 +27,10 @@ func NewRXMixer(trx int, controller RXMixController) *RXMixer {
 				}
 			},
 			volumeRange,
+			nil,
 		),
 		vfoABalance: NewPoti(
+			MidiKey{},
 			func(v int) {
 				err := controller.SetRXBalance(trx, client.VFOA, v)
 				if err != nil {
@@ -35,8 +38,10 @@ func NewRXMixer(trx int, controller RXMixController) *RXMixer {
 				}
 			},
 			balanceRange,
+			nil,
 		),
 		vfoBVolume: NewPoti(
+			MidiKey{},
 			func(v int) {
 				err := controller.SetRXVolume(trx, client.VFOB, v)
 				if err != nil {
@@ -44,8 +49,10 @@ func NewRXMixer(trx int, controller RXMixController) *RXMixer {
 				}
 			},
 			volumeRange,
+			nil,
 		),
 		vfoBBalance: NewPoti(
+			MidiKey{},
 			func(v int) {
 				err := controller.SetRXBalance(trx, client.VFOB, v)
 				if err != nil {
@@ -53,6 +60,7 @@ func NewRXMixer(trx int, controller RXMixController) *RXMixer {
 				}
 			},
 			balanceRange,
+			nil,
 		),
 		trx: trx,
 	}

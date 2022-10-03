@@ -88,7 +88,7 @@ func (b *SplitEnableButton) SetSplitEnable(trx int, enabled bool) {
 		return
 	}
 	b.enabled = enabled
-	b.led.Set(b.key, enabled)
+	b.led.SetOn(b.key, enabled)
 }
 
 func NewSyncVFOFrequencyButton(srcTrx int, srcVFO client.VFO, dstTrx int, dstVFO client.VFO, offset int, controller VFOFrequencyController, provider VFOFrequencyProvider) *SyncVFOFrequencyButton {

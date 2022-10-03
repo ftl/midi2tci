@@ -116,7 +116,14 @@ func run(_ *cobra.Command, _ []string) {
 		}
 	}
 
-	ledController := NewLEDController(wr)
+	// use the configured LED controller
+	var ledController LEDController
+	switch strings.ToLower(config.Indicators) {
+	case "pl-1":
+		ledController = NewPL1LED(wr)
+	default:
+		ledController = NewSimpleLED(wr)
+	}
 	defer ledController.Close()
 
 	// open the TCI connection
@@ -291,8 +298,13 @@ func (m rawMessage) Raw() []byte {
 	return []byte(m)
 }
 
-func NewLEDController(w writer.ChannelWriter) *LEDController {
-	result := &LEDController{
+type LEDController interface {
+	ctrl.LED
+	Close()
+}
+
+func NewSimpleLED(w writer.ChannelWriter) *SimpleLED {
+	result := &SimpleLED{
 		w:        w,
 		commands: make(chan func(writer.ChannelWriter)),
 		closed:   make(chan struct{}),
@@ -308,7 +320,13 @@ func NewLEDController(w writer.ChannelWriter) *LEDController {
 	return result
 }
 
-func (c *LEDController) Close() {
+type SimpleLED struct {
+	w        writer.ChannelWriter
+	commands chan func(writer.ChannelWriter)
+	closed   chan struct{}
+}
+
+func (c *SimpleLED) Close() {
 	select {
 	case <-c.closed:
 		return
@@ -318,13 +336,7 @@ func (c *LEDController) Close() {
 	}
 }
 
-type LEDController struct {
-	w        writer.ChannelWriter
-	commands chan func(writer.ChannelWriter)
-	closed   chan struct{}
-}
-
-func (c *LEDController) Set(key ctrl.MidiKey, on bool) {
+func (c *SimpleLED) SetOn(key ctrl.MidiKey, on bool) {
 	c.commands <- func(w writer.ChannelWriter) {
 		w.SetChannel(key.Channel)
 		if on {
@@ -332,6 +344,83 @@ func (c *LEDController) Set(key ctrl.MidiKey, on bool) {
 		} else {
 			writer.NoteOff(w, uint8(key.Key))
 		}
+	}
+}
+
+func (c *SimpleLED) SetFlashing(key ctrl.MidiKey, on bool) {
+	c.SetOn(key, on)
+}
+
+func (c *SimpleLED) SetValue(key ctrl.MidiKey, value uint8) {
+}
+
+func NewPL1LED(w writer.ChannelWriter) *PL1LED {
+	result := &PL1LED{
+		w:        w,
+		commands: make(chan func(writer.ChannelWriter)),
+		closed:   make(chan struct{}),
+	}
+
+	go func() {
+		defer close(result.closed)
+		for command := range result.commands {
+			command(result.w)
+		}
+	}()
+
+	return result
+}
+
+type PL1LED struct {
+	w        writer.ChannelWriter
+	commands chan func(writer.ChannelWriter)
+	closed   chan struct{}
+}
+
+func (c *PL1LED) Close() {
+	select {
+	case <-c.closed:
+		return
+	default:
+		close(c.commands)
+		<-c.closed
+	}
+}
+
+func (c *PL1LED) SetOn(key ctrl.MidiKey, on bool) {
+	c.commands <- func(w writer.ChannelWriter) {
+		w.SetChannel(key.Channel)
+		if on {
+			writer.NoteOn(w, uint8(key.Key), 0x01)
+		} else {
+			writer.NoteOff(w, uint8(key.Key))
+		}
+	}
+}
+
+func (c *PL1LED) SetFlashing(key ctrl.MidiKey, on bool) {
+	c.commands <- func(w writer.ChannelWriter) {
+		w.SetChannel(key.Channel)
+		if on {
+			writer.NoteOn(w, uint8(key.Key), 0x02)
+		} else {
+			writer.NoteOff(w, uint8(key.Key))
+		}
+	}
+}
+
+func (c *PL1LED) SetValue(key ctrl.MidiKey, value uint8) {
+	c.commands <- func(w writer.ChannelWriter) {
+		w.SetChannel(key.Channel)
+		cv := value >> 3
+		if cv <= 0 {
+			cv = 1
+		}
+		if cv > 0x0F {
+			cv = 0x0F
+		}
+		writer.ControlChange(w, uint8(key.Key), cv)
+		log.Printf("value %v = 0x%02x", key, cv)
 	}
 }
 

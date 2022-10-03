@@ -15,12 +15,12 @@ func init() {
 	Factories[MuteMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		return NewMuteButton(m.MidiKey(), led, tciClient), ButtonControl, nil
 	}
-	Factories[VolumeMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
+	Factories[VolumeMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		controlType, stepSize, reverseDirection, dynamicMode, err := m.ValueControlOptions(1)
 		if err != nil {
 			return nil, 0, err
 		}
-		return NewVolumeControl(controlType, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
+		return NewVolumeControl(m.MidiKey(), controlType, led, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
 	}
 }
 
@@ -53,10 +53,10 @@ func (b *MuteButton) Pressed() {
 
 func (b *MuteButton) SetMute(muted bool) {
 	b.muted = muted
-	b.led.Set(b.key, !muted)
+	b.led.SetOn(b.key, !muted)
 }
 
-func NewVolumeControl(controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, controller VolumeController) *VolumeControl {
+func NewVolumeControl(key MidiKey, controlType ControlType, led LED, stepSize int, reverseDirection bool, dynamicMode bool, controller VolumeController) *VolumeControl {
 	set := func(v int) {
 		err := controller.SetVolume(v)
 		if err != nil {
@@ -66,7 +66,7 @@ func NewVolumeControl(controlType ControlType, stepSize int, reverseDirection bo
 	valueRange := StaticRange{-60, 0}
 
 	return &VolumeControl{
-		ValueControl: NewValueControl(controlType, set, valueRange, stepSize, reverseDirection, dynamicMode),
+		ValueControl: NewValueControl(key, controlType, set, valueRange, led, stepSize, reverseDirection, dynamicMode),
 	}
 }
 

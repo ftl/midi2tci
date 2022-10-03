@@ -20,12 +20,12 @@ func init() {
 	Factories[StopCWMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		return NewStopCWButton(m.MidiKey(), m.TRX, led, tciClient), ButtonControl, nil
 	}
-	Factories[CWSpeedMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
+	Factories[CWSpeedMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		controlType, stepSize, reverseDirection, dynamicMode, err := m.ValueControlOptions(1)
 		if err != nil {
 			return nil, 0, err
 		}
-		return NewCWSpeedControl(controlType, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
+		return NewCWSpeedControl(m.MidiKey(), controlType, led, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
 	}
 }
 
@@ -83,7 +83,7 @@ func (b *StopCWButton) Pressed() {
 	}
 }
 
-func NewCWSpeedControl(controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, controller CWController) *CWSpeedControl {
+func NewCWSpeedControl(key MidiKey, controlType ControlType, led LED, stepSize int, reverseDirection bool, dynamicMode bool, controller CWController) *CWSpeedControl {
 	set := func(v int) {
 		err := controller.SetCWMacrosSpeed(v)
 		if err != nil {
@@ -93,7 +93,7 @@ func NewCWSpeedControl(controlType ControlType, stepSize int, reverseDirection b
 	valueRange := StaticRange{5, 50}
 
 	return &CWSpeedControl{
-		ValueControl: NewValueControl(controlType, set, valueRange, stepSize, reverseDirection, dynamicMode),
+		ValueControl: NewValueControl(key, controlType, set, valueRange, led, stepSize, reverseDirection, dynamicMode),
 	}
 }
 

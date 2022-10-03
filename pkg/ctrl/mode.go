@@ -60,5 +60,5 @@ func (b *ModeButton) SetMode(trx int, mode client.Mode) {
 		return
 	}
 	b.enabled = (mode == b.mode)
-	b.led.Set(b.key, b.enabled)
+	b.led.SetOn(b.key, b.enabled)
 }

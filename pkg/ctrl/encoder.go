@@ -5,10 +5,12 @@ import (
 	"time"
 )
 
-func NewEncoder(set func(int), valueRange ValueRange, stepSize int, reverseDirection bool, dynamicMode bool) *Encoder {
+func NewEncoder(key MidiKey, set func(int), valueRange ValueRange, led LED, stepSize int, reverseDirection bool, dynamicMode bool) *Encoder {
 	result := &Encoder{
+		key:         key,
 		set:         set,
 		valueRange:  valueRange,
+		led:         led,
 		activeValue: make(chan int, 1000),
 		turns:       make(chan int, 1000),
 		closed:      make(chan struct{}),
@@ -24,8 +26,10 @@ func NewEncoder(set func(int), valueRange ValueRange, stepSize int, reverseDirec
 }
 
 type Encoder struct {
+	key         MidiKey
 	set         func(int)
 	valueRange  ValueRange
+	led         LED
 	activeValue chan int
 	turns       chan int
 	closed      chan struct{}
@@ -48,7 +52,7 @@ func (e *Encoder) start() {
 			case <-e.closed:
 				return
 			case value := <-tx:
-				e.set(value)
+				e.set(TrimToRange(e.valueRange, value))
 			}
 		}
 	}()
@@ -98,7 +102,14 @@ func (e *Encoder) start() {
 				}
 
 				nextValue := int(math.Round(float64(activeValue+accumulatedTurns)/float64(e.stepSize))) * e.stepSize
+				nextValue = TrimToRange(e.valueRange, nextValue)
 				usedSteps := nextValue - activeValue
+
+				if usedSteps == 0 {
+					accumulatedTurns = 0
+					pending = false
+					continue
+				}
 
 				selectedValue = nextValue
 				accumulatedTurns -= usedSteps
@@ -148,5 +159,7 @@ func (e *Encoder) Changed(turns int) {
 
 func (e *Encoder) SetActiveValue(value int) {
 	e.activeValue <- value
-	// TODO indicate the re-translated value
+	if e.led != nil {
+		e.led.SetValue(e.key, Project(e.valueRange, value))
+	}
 }

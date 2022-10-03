@@ -35,13 +35,13 @@ func init() {
 
 		return NewFilterBandButton(m.MidiKey(), m.TRX, minFrequency, maxFrequency, led, tciClient), ButtonControl, nil
 	}
-	Factories[FilterWidthMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
+	Factories[FilterWidthMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		controlType, stepSize, reverseDirection, dynamicMode, err := m.ValueControlOptions(1)
 		if err != nil {
 			return nil, 0, err
 		}
 
-		return NewFilterWidthControl(m.TRX, controlType, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
+		return NewFilterWidthControl(m.MidiKey(), m.TRX, controlType, led, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
 	}
 }
 
@@ -85,10 +85,10 @@ func (b *FilterBandButton) SetRXFilterBand(trx int, min, max int) {
 		return
 	}
 	b.enabled = (min == b.bottomFrequency) && (max == b.topFrequency)
-	b.led.Set(b.key, b.enabled)
+	b.led.SetOn(b.key, b.enabled)
 }
 
-func NewFilterWidthControl(trx int, controlType ControlType, stepSize int, reverseDirection bool, dynamicMode bool, controller RXFilterBandController) *FilterWidthControl {
+func NewFilterWidthControl(key MidiKey, trx int, controlType ControlType, led LED, stepSize int, reverseDirection bool, dynamicMode bool, controller RXFilterBandController) *FilterWidthControl {
 	result := &FilterWidthControl{
 		trx: trx,
 	}
@@ -101,7 +101,7 @@ func NewFilterWidthControl(trx int, controlType ControlType, stepSize int, rever
 		}
 	}
 
-	result.ValueControl = NewValueControl(controlType, set, result, stepSize, reverseDirection, dynamicMode)
+	result.ValueControl = NewValueControl(key, controlType, set, result, led, stepSize, reverseDirection, dynamicMode)
 	return result
 }
 

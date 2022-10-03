@@ -2,6 +2,13 @@
     "port_number": 1,
     "port_name":   null,
     "tci_address": "localhost:40001",
+    "indicators": "default",
+    "init_sequence": [
+    ],
+    "connect_sequence": [
+    ],
+    "disconnect_sequence": [
+    ],
     "mappings": [
         {"type": "vfo", "channel": 1, "key": 10, "trx": 0, "vfo": "VFOA", "options": {"direction": "default", "step": "5", "mode": "dynamic"}},
         {"type": "vfo", "channel": 2, "key": 10, "trx": 0, "vfo": "VFOB", "options": {"direction": "reverse", "step": "10", "mode": "static"}},

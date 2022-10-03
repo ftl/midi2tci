@@ -46,6 +46,7 @@ func init() {
 func NewVFOEncoder(trx int, vfo client.VFO, stepSize int, reverseDirection bool, dynamicMode bool, controller VFOFrequencyController) *VFOEncoder {
 	return &VFOEncoder{
 		Encoder: NewEncoder(
+			MidiKey{},
 			func(frequency int) {
 				err := controller.SetVFOFrequency(trx, vfo, frequency)
 				if err != nil {
@@ -53,6 +54,7 @@ func NewVFOEncoder(trx int, vfo client.VFO, stepSize int, reverseDirection bool,
 				}
 			},
 			InfiniteRange{},
+			nil,
 			stepSize,
 			reverseDirection,
 			dynamicMode,

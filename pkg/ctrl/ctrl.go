@@ -15,7 +15,9 @@ type MidiKey struct {
 }
 
 type LED interface {
-	Set(key MidiKey, on bool)
+	SetOn(key MidiKey, on bool)
+	SetFlashing(key MidiKey, on bool)
+	SetValue(key MidiKey, value uint8)
 }
 
 type Mapping struct {
@@ -101,14 +103,30 @@ func (r InfiniteRange) Max() int       { return 0 }
 func (r InfiniteRange) Infinite() bool { return true }
 
 func RangeTick(r ValueRange) float64 {
+	if r.Max()-r.Min()+1 == 0 {
+		return 1
+	}
 	return float64(r.Max()-r.Min()+1) / 128.0
+}
+
+func TrimToRange(r ValueRange, value int) int {
+	if r.Infinite() {
+		return value
+	}
+	if value < r.Min() {
+		return r.Min()
+	}
+	if value > r.Max() {
+		return r.Max()
+	}
+	return value
 }
 
 func Translate(r ValueRange, value uint8) int {
 	if r.Infinite() {
 		return int(value)
 	}
-	return r.Min() + int(float64(value)*RangeTick(r))
+	return TrimToRange(r, r.Min()+int(float64(value)*RangeTick(r)))
 }
 
 func Project(r ValueRange, value int) uint8 {
@@ -131,11 +149,11 @@ type ValueControl interface {
 	Close()
 }
 
-func NewValueControl(controlType ControlType, set func(int), valueRange ValueRange, stepSize int, reverseDirection bool, dynamicMode bool) ValueControl {
+func NewValueControl(key MidiKey, controlType ControlType, set func(int), valueRange ValueRange, led LED, stepSize int, reverseDirection bool, dynamicMode bool) ValueControl {
 	if controlType == EncoderControl {
-		return NewEncoder(set, valueRange, stepSize, reverseDirection, dynamicMode)
+		return NewEncoder(key, set, valueRange, led, stepSize, reverseDirection, dynamicMode)
 	} else {
-		return NewPoti(set, valueRange)
+		return NewPoti(key, set, valueRange, led)
 	}
 }
 

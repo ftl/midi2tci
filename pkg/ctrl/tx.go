@@ -54,7 +54,7 @@ func (b *MOXButton) SetTX(trx int, ptt bool) {
 		return
 	}
 	b.enabled = ptt
-	b.led.Set(b.key, ptt)
+	b.led.SetFlashing(b.key, ptt)
 }
 
 func NewTuneButton(key MidiKey, trx int, led LED, enabler TuneEnabler) *TuneButton {
@@ -91,5 +91,5 @@ func (b *TuneButton) SetTune(trx int, ptt bool) {
 		return
 	}
 	b.enabled = ptt
-	b.led.Set(b.key, ptt)
+	b.led.SetOn(b.key, ptt)
 }

@@ -4,10 +4,12 @@ import (
 	"time"
 )
 
-func NewPoti(set func(int), valueRange ValueRange) *Poti {
+func NewPoti(key MidiKey, set func(int), valueRange ValueRange, led LED) *Poti {
 	result := &Poti{
+		key:           key,
 		set:           set,
 		valueRange:    valueRange,
+		led:           led,
 		selectedValue: make(chan int, 1000),
 		activeValue:   make(chan int, 1000),
 		closed:        make(chan struct{}),
@@ -19,8 +21,10 @@ func NewPoti(set func(int), valueRange ValueRange) *Poti {
 }
 
 type Poti struct {
+	key           MidiKey
 	set           func(int)
 	valueRange    ValueRange
+	led           LED
 	activeValue   chan int
 	selectedValue chan int
 	closed        chan struct{}
@@ -112,5 +116,7 @@ func (s *Poti) Changed(value int) {
 
 func (s *Poti) SetActiveValue(value int) {
 	s.activeValue <- value
-	// TODO indicate the re-translated value
+	if s.led != nil {
+		s.led.SetValue(s.key, Project(s.valueRange, value))
+	}
 }
