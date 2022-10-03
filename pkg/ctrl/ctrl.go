@@ -64,7 +64,7 @@ func (m Mapping) ValueControlOptions(defaultStepSize int) (controlType ControlTy
 	str = m.Options["direction"]
 	reverseDirection = strings.ToLower(str) == "reverse"
 
-	str = m.Options["mode"]
+	str = m.Options["speed"]
 	dynamicMode = strings.ToLower(str) == "dynamic"
 
 	return

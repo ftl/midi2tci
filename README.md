@@ -16,7 +16,7 @@ The configuration file contains the mappings of MIDI input controls to TCI comma
 
 ## Setup
 
-Putting together the configuration file is done in two steps: first you need to find out on which MIDI port your device is connected, then you have to find out what channel and key your desired MIDI input controls are using. [example_config.json](./example_config.json) contains an example configuration with all available TCI commands.
+Putting together the configuration file is done in two steps: first you need to find out on which MIDI port your device is connected, then you have to find out what channel and key your desired MIDI input controls are using. [example_config.json](./example_config.json) contains an example configuration with all available functions, which are documented also the [wiki](./wiki/Functions).
 
 ### Find the MIDI Device
 
@@ -57,6 +57,18 @@ The example shows that the control I want to use for VFOA has the setting channe
 ```
 
 This example shows a control that send Pitchbend events over MIDI. In this case the key parameter of the mapping needs to be -1 (key=-1).
+
+## Supported Hardware
+
+The general behavior of MIDI controllers should be independent of the actual hardware that you are using. So any MIDI controller should work in theory. However, the devil lies in the details, and your specific hardware might behave differently. I tested the following hardware:
+
+* Hercules DJControl Starlight
+* Behringer CMD PL-1 (kudos to Elmar/DG7YEO)
+
+I found some differences in the way that the LED indicators are controlled. Therefor there is the parameter `indicators` in the configuration file, that currently accepts the following values:
+
+* default: the default, based on the behavior of the Hercules DJControl Starlight
+* pl-1: special treatment of LED indicators for rotary encoders as the Behringer CMD PL-1 expects it
 
 ## License
 
