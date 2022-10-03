@@ -23,7 +23,7 @@ func init() {
 			reverseDirection = true
 		}
 		dynamicMode := false
-		modeStr := m.Options["mode"]
+		modeStr := m.Options["speed"]
 		if strings.ToLower(modeStr) == "dynamic" {
 			dynamicMode = true
 		}
