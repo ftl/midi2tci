@@ -420,7 +420,6 @@ func (c *PL1LED) SetValue(key ctrl.MidiKey, value uint8) {
 			cv = 0x0F
 		}
 		writer.ControlChange(w, uint8(key.Key), cv)
-		log.Printf("value %v = 0x%02x", key, cv)
 	}
 }
 
