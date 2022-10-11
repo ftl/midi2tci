@@ -17,7 +17,8 @@ const (
 
 func init() {
 	Factories[EnableRITMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
-		return NewRITEnableButton(m.MidiKey(), m.TRX, led, tciClient), ButtonControl, nil
+		reset := m.BoolOption("reset", false)
+		return NewRITEnableButton(m.MidiKey(), m.TRX, led, reset, tciClient), ButtonControl, nil
 	}
 	Factories[RITMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		controlType, stepSize, reverseDirection, dynamicMode, err := m.ValueControlOptions(1)
@@ -31,7 +32,8 @@ func init() {
 		return NewRITControl(m.MidiKey(), m.TRX, controlType, led, stepSize, reverseDirection, dynamicMode, frequencyRange, tciClient), controlType, nil
 	}
 	Factories[EnableXITMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
-		return NewXITEnableButton(m.MidiKey(), m.TRX, led, tciClient), ButtonControl, nil
+		reset := m.BoolOption("reset", false)
+		return NewXITEnableButton(m.MidiKey(), m.TRX, led, reset, tciClient), ButtonControl, nil
 	}
 	Factories[XITMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		controlType, stepSize, reverseDirection, dynamicMode, err := m.ValueControlOptions(1)
@@ -46,12 +48,13 @@ func init() {
 	}
 }
 
-func NewRITEnableButton(key MidiKey, trx int, led LED, ritEnabler RITEnabler) *RITEnableButton {
+func NewRITEnableButton(key MidiKey, trx int, led LED, reset bool, ritEnabler RITEnabler) *RITEnableButton {
 	return &RITEnableButton{
 		key:        key,
 		trx:        trx,
 		led:        led,
 		ritEnabler: ritEnabler,
+		reset:      reset,
 	}
 }
 
@@ -61,10 +64,12 @@ type RITEnableButton struct {
 	led        LED
 	ritEnabler RITEnabler
 
+	reset   bool
 	enabled bool
 }
 
 type RITEnabler interface {
+	SetRITOffset(int, int) error
 	SetRITEnable(int, bool) error
 }
 
@@ -72,6 +77,12 @@ func (b *RITEnableButton) Pressed() {
 	err := b.ritEnabler.SetRITEnable(b.trx, !b.enabled)
 	if err != nil {
 		log.Print(err)
+	}
+	if b.reset {
+		err := b.ritEnabler.SetRITOffset(b.trx, 0)
+		if err != nil {
+			log.Print(err)
+		}
 	}
 }
 
@@ -83,12 +94,13 @@ func (b *RITEnableButton) SetRITEnable(trx int, enabled bool) {
 	b.led.SetOn(b.key, enabled)
 }
 
-func NewXITEnableButton(key MidiKey, trx int, led LED, xitEnabler XITEnabler) *XITEnableButton {
+func NewXITEnableButton(key MidiKey, trx int, led LED, reset bool, xitEnabler XITEnabler) *XITEnableButton {
 	return &XITEnableButton{
 		key:        key,
 		trx:        trx,
 		led:        led,
 		xitEnabler: xitEnabler,
+		reset:      reset,
 	}
 }
 
@@ -98,10 +110,12 @@ type XITEnableButton struct {
 	led        LED
 	xitEnabler XITEnabler
 
+	reset   bool
 	enabled bool
 }
 
 type XITEnabler interface {
+	SetXITOffset(int, int) error
 	SetXITEnable(int, bool) error
 }
 
@@ -109,6 +123,12 @@ func (b *XITEnableButton) Pressed() {
 	err := b.xitEnabler.SetXITEnable(b.trx, !b.enabled)
 	if err != nil {
 		log.Print(err)
+	}
+	if b.reset {
+		err := b.xitEnabler.SetXITOffset(b.trx, 0)
+		if err != nil {
+			log.Print(err)
+		}
 	}
 }
 

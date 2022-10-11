@@ -84,6 +84,20 @@ func (m Mapping) IntOption(name string, defaultValue int) (int, error) {
 	return value, nil
 }
 
+func (m Mapping) BoolOption(name string, defaultValue bool) bool {
+	str, ok := m.Options[name]
+	if !ok {
+		return defaultValue
+	}
+	str = strings.ToLower(strings.TrimSpace(str))
+	switch str {
+	case "on", "true", "yes", "1":
+		return true
+	default:
+		return false
+	}
+}
+
 type MappingType string
 
 type ControlType int
