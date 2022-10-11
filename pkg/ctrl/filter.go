@@ -3,6 +3,8 @@ package ctrl
 import (
 	"fmt"
 	"log"
+	"strings"
+	"time"
 
 	"github.com/ftl/tci/client"
 )
@@ -30,7 +32,12 @@ func init() {
 			return nil, ButtonControl, fmt.Errorf("no maximum frequency configured. Use options[\"max\"]=\"<max frequency in Hz>\" to configure the filter's maximum frequency")
 		}
 
-		return NewFilterBandButton(m.MidiKey(), m.TRX, minFrequency, maxFrequency, led, tciClient), ButtonControl, nil
+		mode, ok := m.Options["mode"]
+		if ok {
+			mode = strings.TrimSpace(strings.ToLower(mode))
+		}
+
+		return NewFilterBandButton(m.MidiKey(), m.TRX, minFrequency, maxFrequency, client.Mode(mode), led, tciClient), ButtonControl, nil
 	}
 	Factories[FilterWidthMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		controlType, stepSize, reverseDirection, dynamicMode, err := m.ValueControlOptions(1)
@@ -42,7 +49,7 @@ func init() {
 	}
 }
 
-func NewFilterBandButton(key MidiKey, trx int, bottomFrequency int, topFrequency int, led LED, controller RXFilterBandController) *FilterBandButton {
+func NewFilterBandButton(key MidiKey, trx int, bottomFrequency int, topFrequency int, mode client.Mode, led LED, controller RXFilterBandController) *FilterBandButton {
 	return &FilterBandButton{
 		key:        key,
 		trx:        trx,
@@ -51,6 +58,7 @@ func NewFilterBandButton(key MidiKey, trx int, bottomFrequency int, topFrequency
 
 		bottomFrequency: bottomFrequency,
 		topFrequency:    topFrequency,
+		mode:            mode,
 	}
 }
 
@@ -62,27 +70,57 @@ type FilterBandButton struct {
 
 	bottomFrequency int
 	topFrequency    int
+	mode            client.Mode
 
-	enabled bool
+	currentBottomFrequency int
+	currentTopFrequency    int
+	currentMode            client.Mode
 }
 
 type RXFilterBandController interface {
 	SetRXFilterBand(trx int, min, max int) error
+	SetMode(trx int, mode client.Mode) error
 }
 
 func (b *FilterBandButton) Pressed() {
+	if b.mode != "" {
+		err := b.controller.SetMode(b.trx, b.mode)
+		if err != nil {
+			log.Printf("cannot set mode: %v", err)
+		}
+	}
+
+	// add a grace period before setting the filter band, otherwise ExpertSDR will restore
+	// the last filter band for this mode and overwrite our setting
+	time.Sleep(200 * time.Millisecond)
+
 	err := b.controller.SetRXFilterBand(b.trx, b.bottomFrequency, b.topFrequency)
 	if err != nil {
-		log.Print(err)
+		log.Printf("cannot set rx filter band: %v", err)
 	}
+}
+
+func (b *FilterBandButton) enabled() bool {
+	return (b.currentMode == b.mode) &&
+		(b.currentBottomFrequency == b.bottomFrequency) &&
+		(b.currentTopFrequency == b.topFrequency)
 }
 
 func (b *FilterBandButton) SetRXFilterBand(trx int, min, max int) {
 	if trx != b.trx {
 		return
 	}
-	b.enabled = (min == b.bottomFrequency) && (max == b.topFrequency)
-	b.led.SetOn(b.key, b.enabled)
+	b.currentBottomFrequency = min
+	b.currentTopFrequency = max
+	b.led.SetOn(b.key, b.enabled())
+}
+
+func (b *FilterBandButton) SetMode(trx int, mode client.Mode) {
+	if trx != b.trx {
+		return
+	}
+	b.currentMode = mode
+	b.led.SetOn(b.key, b.enabled())
 }
 
 func NewFilterWidthControl(key MidiKey, trx int, controlType ControlType, led LED, stepSize int, reverseDirection bool, dynamicMode bool, controller RXFilterBandController) *FilterWidthControl {
