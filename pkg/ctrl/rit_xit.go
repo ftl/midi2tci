@@ -7,6 +7,8 @@ import (
 )
 
 const (
+	defaultRitXitRange = 100
+
 	EnableRITMapping MappingType = "enable_rit"
 	RITMapping       MappingType = "rit"
 	EnableXITMapping MappingType = "enable_xit"
@@ -22,7 +24,11 @@ func init() {
 		if err != nil {
 			return nil, 0, err
 		}
-		return NewRITControl(m.MidiKey(), m.TRX, controlType, led, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
+		frequencyRange, err := m.IntOption("range", defaultRitXitRange)
+		if err != nil {
+			return nil, 0, err
+		}
+		return NewRITControl(m.MidiKey(), m.TRX, controlType, led, stepSize, reverseDirection, dynamicMode, frequencyRange, tciClient), controlType, nil
 	}
 	Factories[EnableXITMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		return NewXITEnableButton(m.MidiKey(), m.TRX, led, tciClient), ButtonControl, nil
@@ -32,7 +38,11 @@ func init() {
 		if err != nil {
 			return nil, 0, err
 		}
-		return NewXITControl(m.MidiKey(), m.TRX, controlType, led, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
+		frequencyRange, err := m.IntOption("range", defaultRitXitRange)
+		if err != nil {
+			return nil, 0, err
+		}
+		return NewXITControl(m.MidiKey(), m.TRX, controlType, led, stepSize, reverseDirection, dynamicMode, frequencyRange, tciClient), controlType, nil
 	}
 }
 
@@ -110,14 +120,14 @@ func (b *XITEnableButton) SetXITEnable(trx int, enabled bool) {
 	b.led.SetOn(b.key, enabled)
 }
 
-func NewRITControl(key MidiKey, trx int, controlType ControlType, led LED, stepSize int, reverseDirection bool, dynamicMode bool, controller RITController) *RITControl {
+func NewRITControl(key MidiKey, trx int, controlType ControlType, led LED, stepSize int, reverseDirection bool, dynamicMode bool, frequencyRange int, controller RITController) *RITControl {
 	set := func(v int) {
 		err := controller.SetRITOffset(trx, v)
 		if err != nil {
 			log.Printf("Cannot change RIT offset: %v", err)
 		}
 	}
-	valueRange := StaticRange{-100, 100}
+	valueRange := StaticRange{-frequencyRange, frequencyRange}
 	return &RITControl{
 		ValueControl: NewValueControl(key, controlType, set, valueRange, led, stepSize, reverseDirection, dynamicMode),
 		trx:          trx,
@@ -140,14 +150,14 @@ func (s *RITControl) SetRITOffset(trx int, offset int) {
 	s.ValueControl.SetActiveValue(offset)
 }
 
-func NewXITControl(key MidiKey, trx int, controlType ControlType, led LED, stepSize int, reverseDirection bool, dynamicMode bool, controller XITController) *XITControl {
+func NewXITControl(key MidiKey, trx int, controlType ControlType, led LED, stepSize int, reverseDirection bool, dynamicMode bool, frequencyRange int, controller XITController) *XITControl {
 	set := func(v int) {
 		err := controller.SetXITOffset(trx, v)
 		if err != nil {
 			log.Printf("Cannot change XIT offset: %v", err)
 		}
 	}
-	valueRange := StaticRange{-100, 100}
+	valueRange := StaticRange{-frequencyRange, frequencyRange}
 	return &XITControl{
 		ValueControl: NewValueControl(key, controlType, set, valueRange, led, stepSize, reverseDirection, dynamicMode),
 		trx:          trx,
