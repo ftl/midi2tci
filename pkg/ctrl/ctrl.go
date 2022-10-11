@@ -47,16 +47,7 @@ func (m Mapping) ValueControlOptions(defaultStepSize int) (controlType ControlTy
 		controlType = PotiControl
 	}
 
-	str, ok := m.Options["step"]
-	if ok {
-		stepSize, err = strconv.Atoi(str)
-		if err != nil {
-			return
-		}
-	} else {
-		stepSize = defaultStepSize
-	}
-
+	stepSize, err = m.IntOption("step", defaultStepSize)
 	if stepSize == 0 {
 		stepSize = defaultStepSize
 	}
@@ -68,6 +59,29 @@ func (m Mapping) ValueControlOptions(defaultStepSize int) (controlType ControlTy
 	dynamicMode = strings.ToLower(str) == "dynamic"
 
 	return
+}
+
+func (m Mapping) RequiredIntOption(name string) (int, bool, error) {
+	str, ok := m.Options[name]
+	if !ok {
+		return 0, false, nil
+	}
+	value, err := strconv.Atoi(str)
+	if err != nil {
+		return 0, false, err
+	}
+	return value, true, nil
+}
+
+func (m Mapping) IntOption(name string, defaultValue int) (int, error) {
+	value, set, err := m.RequiredIntOption(name)
+	if err != nil {
+		return 0, err
+	}
+	if !set {
+		return defaultValue, nil
+	}
+	return value, nil
 }
 
 type MappingType string

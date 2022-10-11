@@ -3,7 +3,6 @@ package ctrl
 import (
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/ftl/tci/client"
 )
@@ -23,13 +22,12 @@ func init() {
 			return nil, 0, err
 		}
 
-		srcTRXStr, ok := m.Options["src_trx"]
-		if !ok {
-			return nil, ButtonControl, fmt.Errorf("no source TRX configured. Use options[\"src_trx\"]=\"<source TRX>\" to configure the source TRX")
-		}
-		srcTRX, err := strconv.Atoi(srcTRXStr)
+		srcTRX, set, err := m.RequiredIntOption("src_trx")
 		if err != nil {
-			return nil, ButtonControl, fmt.Errorf("invalid source TRX %s: %v", srcTRXStr, err)
+			return nil, ButtonControl, fmt.Errorf("invalid source TRX: %w", err)
+		}
+		if !set {
+			return nil, ButtonControl, fmt.Errorf("no source TRX configured. Use options[\"src_trx\"]=\"<source TRX>\" to configure the source TRX")
 		}
 
 		srcVFOStr, ok := m.Options["src_vfo"]
@@ -38,16 +36,12 @@ func init() {
 		}
 		srcVFO, err := AtoVFO(srcVFOStr)
 		if err != nil {
-			return nil, ButtonControl, fmt.Errorf("invalid source VFO %s: %v", srcVFOStr, err)
+			return nil, ButtonControl, fmt.Errorf("invalid source VFO %s: %w", srcVFOStr, err)
 		}
 
-		offset := 0
-		offsetStr, ok := m.Options["offset"]
-		if ok {
-			offset, err = strconv.Atoi(offsetStr)
-			if err != nil {
-				return nil, ButtonControl, fmt.Errorf("invalid offset %s: %v", offsetStr, err)
-			}
+		offset, err := m.IntOption("offset", 0)
+		if err != nil {
+			return nil, ButtonControl, fmt.Errorf("invalid offset: %w", err)
 		}
 
 		return NewSyncVFOFrequencyButton(srcTRX, srcVFO, m.TRX, vfo, offset, tciClient, tciClient), ButtonControl, nil

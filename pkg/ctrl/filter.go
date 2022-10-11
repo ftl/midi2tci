@@ -3,7 +3,6 @@ package ctrl
 import (
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/ftl/tci/client"
 )
@@ -15,22 +14,20 @@ const (
 
 func init() {
 	Factories[FilterMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
-		minFrequencyStr, ok := m.Options["min"]
-		if !ok {
+		minFrequency, set, err := m.RequiredIntOption("min")
+		if err != nil {
+			return nil, ButtonControl, fmt.Errorf("invalid minimum frequency: %w", err)
+		}
+		if !set {
 			return nil, ButtonControl, fmt.Errorf("no minimum frequency configured. Use options[\"min\"]=\"<min frequency in Hz>\" to configure the filter's minimum frequency")
 		}
-		minFrequency, err := strconv.Atoi(minFrequencyStr)
-		if err != nil {
-			return nil, ButtonControl, fmt.Errorf("invalid minimum frequency %s: %v", minFrequencyStr, err)
-		}
 
-		maxFrequencyStr, ok := m.Options["max"]
-		if !ok {
-			return nil, ButtonControl, fmt.Errorf("no maximum frequency configured. Use options[\"max\"]=\"<max frequency in Hz>\" to configure the filter's maximum frequency")
-		}
-		maxFrequency, err := strconv.Atoi(maxFrequencyStr)
+		maxFrequency, set, err := m.RequiredIntOption("max")
 		if err != nil {
-			return nil, ButtonControl, fmt.Errorf("invalid maximum frequency %s: %v", maxFrequencyStr, err)
+			return nil, ButtonControl, fmt.Errorf("invalid maximum frequency: %w", err)
+		}
+		if !set {
+			return nil, ButtonControl, fmt.Errorf("no maximum frequency configured. Use options[\"max\"]=\"<max frequency in Hz>\" to configure the filter's maximum frequency")
 		}
 
 		return NewFilterBandButton(m.MidiKey(), m.TRX, minFrequency, maxFrequency, led, tciClient), ButtonControl, nil

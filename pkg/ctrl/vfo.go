@@ -3,7 +3,6 @@ package ctrl
 import (
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 
 	"github.com/ftl/tci/client"
@@ -27,13 +26,9 @@ func init() {
 		if strings.ToLower(modeStr) == "dynamic" {
 			dynamicMode = true
 		}
-		stepSizeStr, ok := m.Options["step"]
-		var stepSize int
-		if ok {
-			stepSize, err = strconv.Atoi(stepSizeStr)
-			if err != nil {
-				return nil, ButtonControl, fmt.Errorf("the step size is invalid: %v", err)
-			}
+		stepSize, err := m.IntOption("step", 10)
+		if err != nil {
+			return nil, ButtonControl, fmt.Errorf("the step size is invalid: %v", err)
 		}
 		if stepSize == 0 {
 			stepSize = 10
