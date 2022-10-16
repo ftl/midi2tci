@@ -15,6 +15,13 @@ func init() {
 	Factories[MixerMapping] = func(m Mapping, _ LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		return NewRXMixer(m.TRX, tciClient), PotiControl, nil
 	}
+	Factories["experimental_"+MixerMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
+		controlType, stepSize, reverseDirection, dynamicMode, err := m.ValueControlOptions(1)
+		if err != nil {
+			return nil, 0, err
+		}
+		return NewRXMixer2(m.MidiKey(), m.TRX, controlType, led, stepSize, reverseDirection, dynamicMode, tciClient), controlType, nil
+	}
 	Factories[SetMixerMapping] = func(m Mapping, led LED, tciClient *client.Client) (interface{}, ControlType, error) {
 		volumeA, err := m.IntOption("volume_a", 0)
 		if err != nil {
@@ -167,6 +174,123 @@ func (s *RXMixer) SetRXBalance(trx int, vfo client.VFO, balance int) {
 		s.vfoABalance.SetActiveValue(balance)
 	case client.VFOB:
 		s.vfoBBalance.SetActiveValue(balance)
+	}
+}
+
+var (
+	volumeRange  = StaticRange{-60, 0}
+	balanceRange = StaticRange{-40, 40}
+)
+
+func NewRXMixer2(key MidiKey, trx int, controlType ControlType, led LED, stepSize int, reverseDirection bool, dynamicMode bool, controller RXMixController) *RXMixer2 {
+	result := &RXMixer2{
+		trx:        trx,
+		controller: controller,
+	}
+	valueRange := StaticRange{0x00, 0x7f}
+	result.ValueControl = NewValueControl(key, controlType, result.set, valueRange, led, stepSize, reverseDirection, dynamicMode)
+	return result
+}
+
+// experimental
+type RXMixer2 struct {
+	ValueControl
+	trx        int
+	controller RXMixController
+
+	targetValue int
+
+	volumeA  int
+	volumeB  int
+	balanceA int
+	balanceB int
+
+	currentVolumeA  int
+	currentVolumeB  int
+	currentBalanceA int
+	currentBalanceB int
+}
+
+func (m *RXMixer2) set(value int) {
+	m.targetValue = value
+
+	const (
+		min    = 0x00
+		max    = 0x7f
+		right  = 0x7f
+		center = 0x40
+		left   = 0x00
+	)
+	if value == center {
+		m.volumeA = Translate(volumeRange, max)
+		m.volumeB = Translate(volumeRange, max)
+		m.balanceA = Translate(balanceRange, left)
+		m.balanceB = Translate(balanceRange, right)
+	} else if value < center {
+		m.volumeA = Translate(volumeRange, max)
+		m.volumeB = Translate(volumeRange, uint8(max-(center-value)*2))
+		m.balanceA = Translate(balanceRange, uint8(center-value))
+		m.balanceB = Translate(balanceRange, right)
+	} else {
+		m.volumeA = Translate(volumeRange, uint8(max-(value-center)*2))
+		m.volumeB = Translate(volumeRange, max)
+		m.balanceA = Translate(balanceRange, left)
+		m.balanceB = Translate(balanceRange, uint8(right-(value-center)))
+	}
+
+	err := m.controller.SetRXVolume(m.trx, client.VFOA, m.volumeA)
+	if err != nil {
+		log.Print(err)
+	}
+	err = m.controller.SetRXBalance(m.trx, client.VFOA, m.balanceA)
+	if err != nil {
+		log.Print(err)
+	}
+	err = m.controller.SetRXVolume(m.trx, client.VFOB, m.volumeB)
+	if err != nil {
+		log.Print(err)
+	}
+	err = m.controller.SetRXBalance(m.trx, client.VFOB, m.balanceB)
+	if err != nil {
+		log.Print(err)
+	}
+
+	log.Printf("VALUE: %d VolA: %d VolB: %d BalA: %d BalB: %d", value, m.volumeA, m.volumeB, m.balanceA, m.balanceB)
+}
+
+func (m *RXMixer2) targetReached() bool {
+	return (m.volumeA == m.currentVolumeA) && (m.volumeB == m.currentVolumeB) && (m.balanceA == m.currentBalanceA) && (m.balanceB == m.currentBalanceB)
+}
+
+func (m *RXMixer2) SetRXVolume(trx int, vfo client.VFO, volume int) {
+	if trx != m.trx {
+		return
+	}
+	switch vfo {
+	case client.VFOA:
+		m.currentVolumeA = volume
+	case client.VFOB:
+		m.currentVolumeB = volume
+	}
+	if m.targetReached() {
+		log.Printf("target reached: %d", m.targetValue)
+		m.SetActiveValue(m.targetValue)
+	}
+}
+
+func (m *RXMixer2) SetRXBalance(trx int, vfo client.VFO, balance int) {
+	if trx != m.trx {
+		return
+	}
+	switch vfo {
+	case client.VFOA:
+		m.currentBalanceA = balance
+	case client.VFOB:
+		m.currentBalanceB = balance
+	}
+	if m.targetReached() {
+		log.Printf("target reached: %d", m.targetValue)
+		m.SetActiveValue(m.targetValue)
 	}
 }
 
