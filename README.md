@@ -2,7 +2,7 @@
 
 midi2tci allows you to control the ExpertSDR software through the TCI protocol using an USB MIDI device.
 
-This tool is written in Go on Linux. It might also work on OSX or Windows, but I did not try that out.
+This tool is written in Go on Linux, but it works also on Windows and OSX.
 
 ## Usage
 
@@ -16,7 +16,7 @@ The configuration file contains the mappings of MIDI input controls to TCI comma
 
 ## Setup
 
-Putting together the configuration file is done in two steps: first you need to find out on which MIDI port your device is connected, then you have to find out what channel and key your desired MIDI input controls are using. [example_config.json](./example_config.json) contains an example configuration with all available functions, which are documented also the [wiki](./wiki/Functions).
+Putting together the configuration file is done in two steps: first you need to find out on which MIDI port your device is connected, then you have to find out what channel and key your desired MIDI input controls are using. [example_config.json](./example_config.json) contains an example configuration with all available functions, which are documented also the [wiki](https://github.com/ftl/midi2tci/wiki/Functions).
 
 ### Find the MIDI Device
 
@@ -64,6 +64,7 @@ The general behavior of MIDI controllers should be independent of the actual har
 
 * Hercules DJControl Starlight
 * Behringer CMD PL-1 (kudos to Elmar/DG7YEO)
+* NumarkDJ2GO2 Touch  
 
 I found some differences in the way that the LED indicators are controlled. Therefor there is the parameter `indicators` in the configuration file, that currently accepts the following values:
 
