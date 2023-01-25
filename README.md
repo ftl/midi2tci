@@ -2,7 +2,7 @@
 
 midi2tci allows you to control the ExpertSDR software through the TCI protocol using an USB MIDI device.
 
-This tool is written in Go on Linux. It work on Windows and might also work on OSX, but I did not try that out.
+This tool is written in Go on Linux, but it works also on Windows and OSX.
 
 ## Usage
 
